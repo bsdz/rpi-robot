@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Robot Control</title>  
+  <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+</head>
+<body>
+
+<style>
+input.button
+{
+    height: 100px; 
+    width: 100px;
+    position: absolute; 
+}
+</style>
+
+<table style="">
+<tr>
+    <td>
+        <canvas id="videoCanvas" width="320" height="240" style="border:1px solid #000000;"></canvas>
+    </td><td>
+        <div id='log' style='width:500px;height:250px;overflow:auto;border:1px solid #000000;font-family:"Courier New", Courier, monospace;font-size:10px'></div>
+    </td>
+</tr>
+</table>
+
+<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="scriptTagWorker.postMessage('forward');" />
+<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="scriptTagWorker.postMessage('left');" />
+<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="scriptTagWorker.postMessage('brake');" />
+<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="scriptTagWorker.postMessage('right');" />
+<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="scriptTagWorker.postMessage('backward');" />
+
+<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="scriptTagWorker.postMessage('tiltup');" />
+<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="scriptTagWorker.postMessage('panleft');" />
+<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="scriptTagWorker.postMessage('center');" />
+<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="scriptTagWorker.postMessage('panright');" />
+<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="scriptTagWorker.postMessage('tiltdown');" />
+
+<script type="text/javascript" src="jsmpg.js"></script>
+<script type='text/worker' id='worker-script'>
+    
+    var host =  "ws://192.168.0.6:9093/ws"; // for normal operation
+    //var host =  "ws://127.0.0.1:9093/ws"; // for tunnelling
+    var socket = new WebSocket(host);
+
+    if (socket) {
+
+        socket.onopen = function() {
+            postMessage("Web service: socket open to host: " + host);
+
+            self.addEventListener('message', function(e) { 
+                switch(e.data) {
+                    case "forward":                        
+                        socket.send("forward");
+                        break;
+                    case "backward":
+                        socket.send("backward");
+                        break;    
+                    case "left":
+                        socket.send("turnleft");
+                        break;    
+                    case "right":
+                        socket.send("turnright");
+                        break;
+                    case "brake":
+                        socket.send("brake");
+                        break;                                
+                    case "tiltup":                        
+                        socket.send("tiltup");
+                        break;
+                    case "panleft":
+                        socket.send("panleft");
+                        break;    
+                    case "center":
+                        socket.send("center");
+                        break;    
+                    case "panright":
+                        socket.send("panright");
+                        break;
+                    case "tiltdown":
+                        socket.send("tiltdown");
+                        break;                                
+                    default:
+                        postMessage("unknown message: " + e.data);
+                }
+                postMessage("processed message: " + e.data); 
+            },false);
+
+        }
+
+        socket.onmessage = function(msg) {
+            postMessage(msg.data);
+        }
+
+        socket.onclose = function() {
+            postMessage("Web service: The connection has been closed.");
+        }
+    }
+    else {
+        postMessage("Web service: Failed to create socket.");
+    }
+</script>
+
+<script>
+    jQuery(function ($) {
+        if (!("WebSocket" in window)) {
+            alert("Your browser does not support web sockets");
+        }
+    });
+
+    var canvas = document.getElementById('videoCanvas');
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#444';
+    ctx.fillText('Loading...', canvas.width / 2 - 30, canvas.height / 3);
+
+    var host =  "ws://192.168.0.6:8084/ws"; // for normal operation
+    //var host =  "ws://127.0.0.1:8084/ws"; // for tunnelling
+    var socket = new WebSocket(host);
+    var player = new jsmpeg(socket, { canvas: canvas });
+
+    function logInfo(txt) {
+        document.getElementById('log').innerHTML += txt + '<br />';
+    }
+
+    function makeWorker(script) {
+        var URL = window.URL || window.webkitURL;
+        var Blob = window.Blob;
+        var Worker = window.Worker;
+
+        if (!URL || !Blob || !Worker || !script) {
+            return null;
+        }
+
+        var blob = new Blob([script]);
+        var worker = new Worker(URL.createObjectURL(blob));
+        return worker;
+    }
+
+    var scriptTagWorker = makeWorker(
+        document.getElementById('worker-script').textContent
+    );
+
+    scriptTagWorker.onmessage = function (e) {
+        logInfo(e.data);
+    };
+
+    document.onkeyup = function () {
+        var KeyID = event.keyCode;
+        switch (KeyID) {
+            case 16:
+                scriptTagWorker.postMessage('brake');
+                break;
+            case 17:
+                scriptTagWorker.postMessage('brake');
+                break;
+            case 37:
+                scriptTagWorker.postMessage('left');
+                break;
+            case 38:
+                scriptTagWorker.postMessage('forward');
+                break;
+            case 39:
+                scriptTagWorker.postMessage('right');
+                break;
+            case 40:
+                scriptTagWorker.postMessage('backward');
+                break;
+
+            case 83:
+                scriptTagWorker.postMessage('center');
+                break;
+            case 65:
+                scriptTagWorker.postMessage('panleft');
+                break;
+            case 87:
+                scriptTagWorker.postMessage('tiltup');
+                break;
+            case 68:
+                scriptTagWorker.postMessage('panright');
+                break;
+            case 88:
+                scriptTagWorker.postMessage('tiltdown');
+                break;
+        }
+    }
+</script>
+</body>
+</html>

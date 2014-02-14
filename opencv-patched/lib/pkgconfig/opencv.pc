@@ -1,0 +1,13 @@
+# Package Information for pkg-config
+
+prefix=/home/pi/opencv-build/install.release
+exec_prefix=${prefix}
+libdir=
+includedir_old=${prefix}/include/opencv
+includedir_new=${prefix}/include
+
+Name: OpenCV
+Description: Open Source Computer Vision Library
+Version: 3.0.0
+Libs:  ${exec_prefix}/lib/libopencv_calib3d.so ${exec_prefix}/lib/libopencv_contrib.so ${exec_prefix}/lib/libopencv_core.so ${exec_prefix}/lib/libopencv_cuda.so ${exec_prefix}/lib/libopencv_cudaarithm.so ${exec_prefix}/lib/libopencv_cudabgsegm.so ${exec_prefix}/lib/libopencv_cudacodec.so ${exec_prefix}/lib/libopencv_cudafeatures2d.so ${exec_prefix}/lib/libopencv_cudafilters.so ${exec_prefix}/lib/libopencv_cudaimgproc.so ${exec_prefix}/lib/libopencv_cudaoptflow.so ${exec_prefix}/lib/libopencv_cudastereo.so ${exec_prefix}/lib/libopencv_cudawarping.so ${exec_prefix}/lib/libopencv_features2d.so ${exec_prefix}/lib/libopencv_flann.so ${exec_prefix}/lib/libopencv_highgui.so ${exec_prefix}/lib/libopencv_imgproc.so ${exec_prefix}/lib/libopencv_legacy.so ${exec_prefix}/lib/libopencv_ml.so ${exec_prefix}/lib/libopencv_nonfree.so ${exec_prefix}/lib/libopencv_objdetect.so ${exec_prefix}/lib/libopencv_optim.so ${exec_prefix}/lib/libopencv_photo.so ${exec_prefix}/lib/libopencv_shape.so ${exec_prefix}/lib/libopencv_softcascade.so ${exec_prefix}/lib/libopencv_stitching.so ${exec_prefix}/lib/libopencv_superres.so ${exec_prefix}/lib/libopencv_ts.a ${exec_prefix}/lib/libopencv_video.so ${exec_prefix}/lib/libopencv_videostab.so -lrt -lpthread -lm -ldl
+Cflags: -I${includedir_old} -I${includedir_new}
