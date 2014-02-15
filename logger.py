@@ -3,12 +3,14 @@ import logging
 log = logging.getLogger("Main")
 log.setLevel(logging.DEBUG)
 
+"""
 console_logHandler = logging.StreamHandler()
 console_logHandler.setFormatter(
     logging.Formatter("%(levelname)s|%(asctime)s|%(filename)s:%(lineno)d|%(message)s"))
 console_logHandler.setLevel(logging.DEBUG)
 log.addHandler(console_logHandler)
 log.setLevel(logging.DEBUG)
+"""
 
 class Logger(object):
     _instance = None

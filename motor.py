@@ -4,138 +4,154 @@ import time
 from logger import Logger
 log = Logger("Main").get_log()
 
-class Motor(object):
-    def __init__(self):
-        gpio.setwarnings(False)
-        gpio.setmode(gpio.BOARD)
-        gpio.setup(7, gpio.OUT)  # m0 enable 1
-        gpio.setup(11, gpio.OUT) # m0 enable 2
-        gpio.setup(13, gpio.OUT) # m0 input 1
-        gpio.setup(15, gpio.OUT) # m0 input 2
-        gpio.setup(12, gpio.OUT) # m1 enable 1
-        gpio.setup(16, gpio.OUT) # m1 enable 2
-        gpio.setup(18, gpio.OUT) # m1 input 1
-        gpio.setup(22, gpio.OUT) # m1 input 2
+gpio.setwarnings(False)
+gpio.setmode(gpio.BOARD)
+
+class Motor(object): # 7,11,13,15
+    def __init__(self, name, pin_enable1, pin_enable2, pin_input1, pin_input2):
+        self.name = name
+        self.pin_enable1 = pin_enable1
+        self.pin_enable2 = pin_enable2
+        self.pin_input1 = pin_input1
+        self.pin_input2 = pin_input2
+        gpio.setup(self.pin_enable1, gpio.OUT)
+        gpio.setup(self.pin_enable2, gpio.OUT)
+        gpio.setup(self.pin_input1, gpio.OUT)
+        gpio.setup(self.pin_input2, gpio.OUT)
         self.pwm_frequency = 40
         self.minimum_speed = 15
         self.maximum_speed = 100
-        self.speed = { 0: 0, 1: 0 }
-        self.direction = { 0: 0, 1: 0 } # 1 ~ forward, 0 ~ stationary, -1 ~ backward
-        
+        self.speed = 0
+        self.direction = 0 # 1 ~ forward, 0 ~ stationary, -1 ~ backward       
         
     def __del__(self):      
-        gpio.cleanup()
+        gpio.cleanup(self.pin_enable1)
+        gpio.cleanup(self.pin_enable2)
+        gpio.cleanup(self.pin_input1)
+        gpio.cleanup(self.pin_input2)
 
-    def enable(self, m, enable):
-        if m == 0:
-            gpio.output(7, enable)
-            gpio.output(11, enable)
-            if enable:
-                self.p7 = gpio.PWM(7, self.pwm_frequency)
-                self.p11 = gpio.PWM(11, self.pwm_frequency)
-                self.p7.start(self.speed[m])
-                self.p11.start(self.speed[m])
-            else:
-                self.p7.stop()
-                self.p11.stop()          
-        if m == 1:
-            gpio.output(12, enable)
-            gpio.output(16, enable)
-            if enable:
-                self.p12 = gpio.PWM(12, self.pwm_frequency)
-                self.p16 = gpio.PWM(16, self.pwm_frequency)
-                self.p12.start(self.speed[m])
-                self.p16.start(self.speed[m])
-            else:
-                self.p12.stop()
-                self.p16.stop()
+    def enable(self, enable):
+        gpio.output(self.pin_enable1, enable)
+        gpio.output(self.pin_enable2, enable)
+        if enable:
+            self.gpio_enable1 = gpio.PWM(self.pin_enable1, self.pwm_frequency)
+            self.gpio_enable2 = gpio.PWM(self.pin_enable2, self.pwm_frequency)
+            self.gpio_enable1.start(self.speed)
+            self.gpio_enable2.start(self.speed)
+        else:
+            self.gpio_enable1.stop()
+            self.gpio_enable2.stop()          
     
-    def control(self, m, in1, in2, speed = 90):
+    def control(self, in1, in2, speed = 90):
         if speed > 100: speed = self.maximum_speed
         if speed < 0: speed = 0
-        self.speed[m] = speed
-        log.debug("motor %s set speed: %s; direction: %s" % (m, self.speed[m], self.direction[m]))
+        self.speed = speed
+        log.debug("motor %s set speed: %s; direction: %s" % (self.name, self.speed, self.direction))
         # override actual motor speed to avoid ineffective pwm duty cycle
-        actual_motor_speed = self.minimum_speed if speed != 0 and speed < self.minimum_speed else speed
-        if m == 0:			
-            gpio.output(13, in1)
-            gpio.output(15, in2)
-            self.p7.start(actual_motor_speed)
-            self.p11.start(actual_motor_speed)                  
-        if m == 1:			
-            gpio.output(18, in1)
-            gpio.output(22, in2)
-            self.p12.start(actual_motor_speed)
-            self.p16.start(actual_motor_speed)                 
-
-    def off_coast(self, m):
-        self.direction[m] = 0
-        self.control(m, False, False, 0)
-
-    def off_brake(self, m):
-        self.direction[m] = 0
-        self.control(m, True, True, 0)
-
-    def backward(self, m, speed = 90):
-        self.direction[m] = -1
-        self.control(m, True, False, speed)
-
-    def forward(self, m, speed = 90):
-        self.direction[m] = 1
-        self.control(m, False, True, speed)
-        
-    def set_velocity(self, m, velocity):
-        direction = cmp(velocity, 0)
-        speed = abs(velocity)
-        if direction == 1:
-            self.forward(m, speed)
-        elif direction == -1:
-            self.backward(m, speed)
+        actual_motor_speed = self.minimum_speed if speed != 0 and speed < self.minimum_speed else speed		
+        gpio.output(self.pin_input1, in1)
+        gpio.output(self.pin_input2, in2)
+        self.gpio_enable1.start(actual_motor_speed)
+        self.gpio_enable2.start(actual_motor_speed)                                  
+       
+    def set_velocity(self, velocity=0, coast_on_brake=False):
+        self.direction = cmp(velocity, 0)
+        self.speed = abs(velocity)
+        if self.direction == 1:
+            self.control(False, True, self.speed)
+        elif self.direction == -1:
+            self.control(True, False, self.speed)
         else:
-            self.off_brake(m)
+            if coast_on_brake:
+                self.control(False, False, 0)
+            else:
+                self.control(True, True, 0)
         
-    def accelerate(self, m, delta = 1):
-        velocity = (self.speed[m] * self.direction[m]) + delta
-        self.set_velocity(m, velocity) 
+    def accelerate(self, delta = 1):
+        velocity = (self.speed * self.direction) + delta
+        self.set_velocity(velocity) 
+
+        
+class MotorPair(object):
+
+    def __init__(self):
+        self.m1 = Motor("m1", 7,11,13,15)
+        self.m2 = Motor("m2", 12,16,18,22)
+        self.m1.enable(True)
+        self.m2.enable(True)
+        
+    def __del__(self):
+        self.m1.enable(False)
+        self.m2.enable(False)  
+              
+    def set_velocity(self, velocity):
+        self.m1.set_velocity(velocity)
+        self.m2.set_velocity(velocity)
+        
+    def accelerate(self, delta):
+        self.m1.accelerate(delta)
+        self.m2.accelerate(delta)
+        
+    def bear_left(self, delta=-1, rotate_speed=50):
+        if self.m2.speed == 0:
+            self.m1.set_velocity(rotate_speed)
+            self.m2.set_velocity(0)
+        else:  
+            self.m2.accelerate(delta)
+        
+    def bear_right(self, delta=-1, rotate_speed=50):
+        if self.m2.speed == 0:
+            self.m1.set_velocity(0)
+            self.m2.set_velocity(rotate_speed)
+        else:  
+            self.m1.accelerate(delta)          
+        
+    def rotate_left(self, rotate_speed = 50):
+        self.m1.set_velocity(rotate_speed)
+        self.m2.set_velocity(0)
+        
+    def rotate_right(self, rotate_speed = 50):
+        self.m1.set_velocity(0)
+        self.m2.set_velocity(rotate_speed)
 
 def main():
-    m = Motor()
-    print "enable motors"
-    m.enable(0, True)
-    m.enable(1, True)
+    mp = MotorPair()
     raw_input("Press Enter to continue...")
     
-    print "0 = forward, 1 = forward"
-    m.forward(0, 40)
-    m.forward(1, 40)
+    print "forward"
+    mp.set_velocity(40)
     raw_input("Press Enter to continue...")
 
-    print "0 = backward, 1 = backward"
-    m.backward(0)
-    m.backward(1)
+    print "backward"
+    mp.set_velocity(-40)
     raw_input("Press Enter to continue...")
 
-    print "0 = backward, 1 = stop"
-    m.backward(0)
-    m.off_brake(1)
+    print "rotate left"
+    mp.rotate_left()
     raw_input("Press Enter to continue...")
 
-    print "0 = stop, 1 = backward"
-    m.off_brake(0)
-    m.backward(1)
+    print "rotate right"
+    mp.rotate_right()
     raw_input("Press Enter to continue...")
+    
+    print "bear left"
+    mp.set_velocity(50)
+    raw_input("Press Enter to continue...")
+    mp.bear_left(10)
+    raw_input("Press Enter to continue...")
+ 
+    print "bear left"
+    mp.set_velocity(50)
+    raw_input("Press Enter to continue...")
+    mp.bear_right(10)
+    raw_input("Press Enter to continue...")       
     
     print "accelerate test"
-    m.set_velocity(0, -50)
-    m.set_velocity(1, -50)
+    mp.set_velocity(-50)
     for i in xrange(0,9):
-        m.accelerate(0, 10)
-        m.accelerate(1, 10)
+        mp.accelerate(10)
         raw_input("Press Enter to continue...")
 
-    print "disable motors"
-    m.enable(0, False)
-    m.enable(1, False)
 
 if __name__ == "__main__":
     #import ptvsd

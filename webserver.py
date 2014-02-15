@@ -9,7 +9,7 @@ from time import sleep
 from Queue import Queue
 from threading import Thread
 
-from motor import Motor
+from motor import MotorPair
 from servo import Servo
 from system import System
 
@@ -44,9 +44,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def open(self):
         self.log.info('connection opened...')
-        self.motor = Motor()
-        self.motor.enable(0, True)
-        self.motor.enable(1, True)
+        self.motor_pair = MotorPair()
         self.servo = Servo()
             
         self.message_queue_thread = Thread(target=message_queue_worker, args=(status_update_queue, self))
@@ -56,20 +54,15 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def on_message(self, message):
         self.log.debug('received: %s' % (message))
         if message == "forward":
-            self.motor.accelerate(0, 10)
-            self.motor.accelerate(1, 10)
+            self.motor_pair.accelerate(10)
         if message == "backward":
-            self.motor.accelerate(0, -10)
-            self.motor.accelerate(1, -10) 
+            self.motor_pair.accelerate(-10) 
         if message == "turnleft":
-            self.motor.off_brake(0)
-            self.motor.backward(1, 50) 
+            self.motor_pair.bear_left(0)
         if message == "turnright":
-            self.motor.backward(0, 50)
-            self.motor.off_brake(1) 
+            self.motor_pair.bear_right(-50)
         if message == "brake":
-            self.motor.off_brake(0)
-            self.motor.off_brake(1)
+            self.motor_pair.set_velocity(0)
         if message == "panleft":
             self.servo.pan_left()
         if message == "panright":
@@ -82,10 +75,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.servo.center()
 
     def on_close(self):
-        self.log.info('connection closed...')
-        self.motor.enable(0, False)
-        self.motor.enable(1, False)
-             
+        self.log.info('connection closed...')             
 
 if __name__ == "__main__":
 
