@@ -1,17 +1,33 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Robot Control</title>  
+  <title>RPiBot Control</title>  
   <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 </head>
 <body>
 
 <style>
-input.button
-{
+input.button {
     height: 100px; 
     width: 100px;
     position: absolute; 
+}
+#logPanel {
+    width:320px;
+    height:240px;
+    overflow:auto;
+    border:1px solid #000000;
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px
+}
+.statusHeader {
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px;
+    font-weight: bold
+}
+.statusData {
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px;
 }
 </style>
 
@@ -19,74 +35,71 @@ input.button
 <tr>
     <td>
         <canvas id="videoCanvas" width="320" height="240" style="border:1px solid #000000;"></canvas>
-    </td><td>
-        <div id='log' style='width:500px;height:250px;overflow:auto;border:1px solid #000000;font-family:"Courier New", Courier, monospace;font-size:10px'></div>
+    </td>
+    <td>
+        <div id='logPanel'></div>
+    </td>
+    <td style="vertical-align:text-top;">
+        <table>
+            <tr><td class="statusHeader">CPU Temp</td><td class="statusData"><div id="cpuTemp"/></td></tr>
+            <tr><td class="statusHeader">GPU Temp</td><td class="statusData"><div id="gpuTemp"/></td></tr>
+            <tr><td class="statusHeader">CPU Load</td><td class="statusData"><div id="cpuLoad"/></td></tr>
+            <tr><td class="statusHeader">Core Volt</td><td class="statusData"><div id="coreVolt"/></td></tr>
+        </table>
     </td>
 </tr>
 </table>
 
-<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="scriptTagWorker.postMessage('forward');" />
-<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="scriptTagWorker.postMessage('left');" />
-<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="scriptTagWorker.postMessage('brake');" />
-<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="scriptTagWorker.postMessage('right');" />
-<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="scriptTagWorker.postMessage('backward');" />
+<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="scriptTagWorker.postMessage({'command':'forward'});" />
+<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="scriptTagWorker.postMessage({'command':'turnleft'});" />
+<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="scriptTagWorker.postMessage({'command':'brake'});" />
+<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="scriptTagWorker.postMessage({'command':'turnright'});" />
+<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="scriptTagWorker.postMessage({'command':'backward'});" />
 
-<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="scriptTagWorker.postMessage('tiltup');" />
-<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="scriptTagWorker.postMessage('panleft');" />
-<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="scriptTagWorker.postMessage('center');" />
-<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="scriptTagWorker.postMessage('panright');" />
-<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="scriptTagWorker.postMessage('tiltdown');" />
+<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="scriptTagWorker.postMessage({'command':'tiltup'});" />
+<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="scriptTagWorker.postMessage({'command':'panleft'});" />
+<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="scriptTagWorker.postMessage({'command':'center'});" />
+<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="scriptTagWorker.postMessage({'command':'panright'});" />
+<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="scriptTagWorker.postMessage({'command':'tiltdown'});" />
+
+<script type="text/javascript">
+    var keyboardShortcuts = {
+        16: "brake",
+        17: "brake",
+        37: "left",
+        38: "forward",
+        39: "right",
+        40: "backward",
+        83: "center",
+        65: "panleft",
+        87: "tiltup",
+        68: "panright",
+        88: "tiltdown"
+    }
+</script>
 
 <script type="text/javascript" src="jsmpg.js"></script>
+
 <script type='text/worker' id='worker-script'>
-    
     var host =  "ws://192.168.0.6:9093/ws"; // for normal operation
     //var host =  "ws://127.0.0.1:9093/ws"; // for tunnelling
     var socket = new WebSocket(host);
 
     if (socket) {
-
         socket.onopen = function() {
-            postMessage("Web service: socket open to host: " + host);
+            postMessage({"log": "Web service: socket open to host: " + host});
 
             self.addEventListener('message', function(e) { 
-                switch(e.data) {
-                    case "forward":                        
-                        socket.send("forward");
-                        break;
-                    case "backward":
-                        socket.send("backward");
-                        break;    
-                    case "left":
-                        socket.send("turnleft");
-                        break;    
-                    case "right":
-                        socket.send("turnright");
-                        break;
-                    case "brake":
-                        socket.send("brake");
-                        break;                                
-                    case "tiltup":                        
-                        socket.send("tiltup");
-                        break;
-                    case "panleft":
-                        socket.send("panleft");
-                        break;    
-                    case "center":
-                        socket.send("center");
-                        break;    
-                    case "panright":
-                        socket.send("panright");
-                        break;
-                    case "tiltdown":
-                        socket.send("tiltdown");
-                        break;                                
-                    default:
-                        postMessage("unknown message: " + e.data);
+                var messageData = e.data;
+                if (typeof(messageData) == "string") {
+                    messageData = JSON.parse(e.data);
                 }
-                postMessage("processed message: " + e.data); 
+                if ("command" in messageData) {
+                    var command = messageData["command"];
+                    socket.send(command);
+                    postMessage({"log": "processed message: " + command}); 
+                }
             },false);
-
         }
 
         socket.onmessage = function(msg) {
@@ -94,33 +107,42 @@ input.button
         }
 
         socket.onclose = function() {
-            postMessage("Web service: The connection has been closed.");
+            postMessage({"log": "Web service: The connection has been closed."});
         }
     }
     else {
-        postMessage("Web service: Failed to create socket.");
+        postMessage({"log": "Web service: Failed to create socket."});
     }
 </script>
 
 <script>
+    function logInfo(txt) {
+        document.getElementById('logPanel').innerHTML += txt + '<br />';
+    }
+
     jQuery(function ($) {
         if (!("WebSocket" in window)) {
-            alert("Your browser does not support web sockets");
+            logInfo("Your browser does not support web sockets");
         }
     });
 
-    var canvas = document.getElementById('videoCanvas');
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#444';
-    ctx.fillText('Loading...', canvas.width / 2 - 30, canvas.height / 3);
+    var videoCanvas = document.getElementById('videoCanvas');
+    var vcContext = videoCanvas.getContext('2d');
+    vcContext.fillStyle = '#444';
+    vcContext.fillText('Connecting..', videoCanvas.width / 2 - 30, videoCanvas.height / 3);
 
     var host =  "ws://192.168.0.6:8084/ws"; // for normal operation
     //var host =  "ws://127.0.0.1:8084/ws"; // for tunnelling
     var socket = new WebSocket(host);
-    var player = new jsmpeg(socket, { canvas: canvas });
+    var player = new jsmpeg(socket, { canvas: videoCanvas });
 
-    function logInfo(txt) {
-        document.getElementById('log').innerHTML += txt + '<br />';
+    function updateStatus(statusMessage) {
+        for (var key in statusMessage) {
+            var e = document.getElementById(key);
+            if (e != null) {
+                e.innerHTML = statusMessage[key];
+            }   
+        }
     }
 
     function makeWorker(script) {
@@ -132,9 +154,7 @@ input.button
             return null;
         }
 
-        var blob = new Blob([script]);
-        var worker = new Worker(URL.createObjectURL(blob));
-        return worker;
+        return new Worker(URL.createObjectURL(new Blob([script])));
     }
 
     var scriptTagWorker = makeWorker(
@@ -142,46 +162,22 @@ input.button
     );
 
     scriptTagWorker.onmessage = function (e) {
-        logInfo(e.data);
+        var messageData = e.data;
+        if (typeof(messageData) == "string") {
+            messageData = JSON.parse(e.data);
+        }
+        if ("log" in messageData) {
+            logInfo(messageData["log"]);
+        }
+        if ("status" in messageData) {
+            updateStatus(messageData["status"]);
+        }
     };
 
     document.onkeyup = function () {
-        var KeyID = event.keyCode;
-        switch (KeyID) {
-            case 16:
-                scriptTagWorker.postMessage('brake');
-                break;
-            case 17:
-                scriptTagWorker.postMessage('brake');
-                break;
-            case 37:
-                scriptTagWorker.postMessage('left');
-                break;
-            case 38:
-                scriptTagWorker.postMessage('forward');
-                break;
-            case 39:
-                scriptTagWorker.postMessage('right');
-                break;
-            case 40:
-                scriptTagWorker.postMessage('backward');
-                break;
-
-            case 83:
-                scriptTagWorker.postMessage('center');
-                break;
-            case 65:
-                scriptTagWorker.postMessage('panleft');
-                break;
-            case 87:
-                scriptTagWorker.postMessage('tiltup');
-                break;
-            case 68:
-                scriptTagWorker.postMessage('panright');
-                break;
-            case 88:
-                scriptTagWorker.postMessage('tiltdown');
-                break;
+        var keyId = event.keyCode;
+        if (keyId in keyboardShortcuts) {
+            scriptTagWorker.postMessage({"command": keyboardShortcuts[keyId]});
         }
     }
 </script>

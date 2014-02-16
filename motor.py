@@ -92,19 +92,13 @@ class MotorPair(object):
         self.m1.accelerate(delta)
         self.m2.accelerate(delta)
         
-    def bear_left(self, delta=-1, rotate_speed=50):
-        if self.m2.speed == 0:
-            self.m1.set_velocity(rotate_speed)
-            self.m2.set_velocity(0)
-        else:  
-            self.m2.accelerate(delta)
+    def bear_left(self, delta=-1):
+        self.m1.accelerate(-delta)
+        self.m2.accelerate(delta)
         
-    def bear_right(self, delta=-1, rotate_speed=50):
-        if self.m2.speed == 0:
-            self.m1.set_velocity(0)
-            self.m2.set_velocity(rotate_speed)
-        else:  
-            self.m1.accelerate(delta)          
+    def bear_right(self, delta=-1):
+        self.m1.accelerate(delta)
+        self.m2.accelerate(-delta)        
         
     def rotate_left(self, rotate_speed = 50):
         self.m1.set_velocity(rotate_speed)

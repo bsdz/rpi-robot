@@ -4,6 +4,8 @@ import tornado.ioloop
 import tornado.web
 import tornado.websocket
 import tornado.template
+import json
+import sys
 
 from time import sleep
 from Queue import Queue
@@ -20,21 +22,34 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         loader = tornado.template.Loader(".")
         self.write(loader.load("index.html").generate())
+        #log.info(repr(self.request))
         
 def status_update_worker(status_update_queue):
     log.info('starting status update worker...')
     si = System()
     while True:
-        message = "Status: CPU Temp %s; GPU Temp %s; Volt: %s; CPU Load: %.2f%%" % (si.cpu_temperature(), si.gpu_temperature(), si.core_voltage(), 100*si.cpu_load())
-        status_update_queue.put(message)  
-        sleep(10) 
+        try:
+            message = json.dumps({"status":{"cpuTemp":si.cpu_temperature(),"gpuTemp":si.gpu_temperature(),"coreVolt":si.core_voltage(),"cpuLoad":100*si.cpu_load()}})
+            status_update_queue.put(message)  
+            sleep(10) 
+        except Exception, ex:
+            log.error("StatusUpdateWorker Exception: %s" % (ex))
+        except:
+            log.error("StatusUpdateWorker Unexpected Error: %s" % (sys.exc_info()[0]))
         
 def message_queue_worker(status_update_queue, web_socket_handler):
     log.info('starting message queue worker...')
     while True:
-        item = status_update_queue.get()
-        web_socket_handler.write_message(item, binary=False)
-        status_update_queue.task_done()       
+        try:
+            item = status_update_queue.get()
+            log.debug("writing item %s" % (item))
+            web_socket_handler.write_message(item, binary=False)
+            status_update_queue.task_done()       
+        except Exception, ex:
+            log.error("MessageQueueWorker Exception: %s" % (ex))
+        except:
+            log.error("MergeQueueWorker Unexpected Error: %s" % (sys.exc_info()[0]))
+            
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     log = Logger("Main").get_log()
@@ -47,7 +62,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.motor_pair = MotorPair()
         self.servo = Servo()
             
-        self.message_queue_thread = Thread(target=message_queue_worker, args=(status_update_queue, self))
+        self.message_queue_thread = Thread(name="MessageQueueThread", target=message_queue_worker, args=(status_update_queue, self))
         self.message_queue_thread.setDaemon(True)
         self.message_queue_thread.start()  
 
@@ -55,24 +70,26 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.log.debug('received: %s' % (message))
         if message == "forward":
             self.motor_pair.accelerate(10)
-        if message == "backward":
+        elif message == "backward":
             self.motor_pair.accelerate(-10) 
-        if message == "turnleft":
-            self.motor_pair.bear_left(0)
-        if message == "turnright":
-            self.motor_pair.bear_right(-50)
-        if message == "brake":
+        elif message == "turnleft":
+            self.motor_pair.bear_left(-10)
+        elif message == "turnright":
+            self.motor_pair.bear_right(-10)
+        elif message == "brake":
             self.motor_pair.set_velocity(0)
-        if message == "panleft":
+        elif message == "panleft":
             self.servo.pan_left()
-        if message == "panright":
+        elif message == "panright":
             self.servo.pan_right()
-        if message == "tiltup":
+        elif message == "tiltup":
             self.servo.tilt_up()
-        if message == "tiltdown":
+        elif message == "tiltdown":
             self.servo.tilt_down()
-        if message == "center":
+        elif message == "center":
             self.servo.center()
+        else:
+            self.log.debug('unknown message received: %s' % (message))
 
     def on_close(self):
         self.log.info('connection closed...')             
@@ -87,7 +104,7 @@ if __name__ == "__main__":
         (r"/(.*)", tornado.web.StaticFileHandler, {"path": "./resources"}),
     ])
 
-    status_update_thread = Thread(target=status_update_worker, args=(status_update_queue,))
+    status_update_thread = Thread(name="StatusUpdateThread", target=status_update_worker, args=(status_update_queue,))
     status_update_thread.setDaemon(True)
     status_update_thread.start()  
 
