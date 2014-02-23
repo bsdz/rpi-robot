@@ -7,8 +7,6 @@ import cv2
 import time
 import numpy as np
 
-from v4l2loopback import V4L2Loopback
-
 def clock():
     return cv2.getTickCount() / cv2.getTickFrequency()
     
@@ -39,23 +37,25 @@ def main():
     face_cascade = cv2.CascadeClassifier("%s/haarcascade_frontalface_alt.xml" % (cascade_dir))
     eye_cascade = cv2.CascadeClassifier("%s/haarcascade_eye.xml" % (cascade_dir))
     
-    loopback = V4L2Loopback(320, 240, 3)
-    
-    capture = cv2.VideoCapture(0)
-    capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-    capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-    capture.set(cv2.CAP_PROP_FPS, 30)
+    print "start cap"
+    capture = cv2.VideoCapture("http://127.0.0.1:8082/SeCrEt/320/240/")
+    print "cap started"
+    #capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+    #capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+    #capture.set(cv2.CAP_PROP_FPS, 30)
     #capture.set(cv2.CAP_PROP_CONTRAST, 0)
     #capture.set(cv2.CAP_PROP_SATURATION, 0)
     #capture.set(cv2.CAP_PROP_HUE, )
     #capture.set(cv2.CAP_PROP_GAIN, )
     #time.sleep(2) 
     #capture.set(cv2.CAP_PROP_EXPOSURE, -8)  
-    capture.set(cv2.CAP_PROP_BRIGHTNESS, 0.65)
+    #capture.set(cv2.CAP_PROP_BRIGHTNESS, 0.65)
     
     while True:
         t = clock()
+        print "read image"
         success, image = capture.read()
+        print success
         if success:
             #grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             #grayscale_image = cv2.equalizeHist(grayscale_image)
@@ -71,15 +71,14 @@ def main():
 
             #dt = clock() - t
             #draw_string(image, (20, 20), 'time: %.1f ms' % (dt*1000))
-            loopback.write(bytearray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
+            #loopback.write(bytearray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
+            cv2.imwrite("./resources/opencv-view.jpg", image)
 
             if 0xFF & cv2.waitKey(5) == 27:
                 capture.release()
                 break
                 
-        time.sleep(0.1)
+        time.sleep(1)
                 
-    cv2.destroyAllWindows()    
-
 if __name__ == "__main__":
     main()

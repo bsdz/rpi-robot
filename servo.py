@@ -1,67 +1,85 @@
 import time
 
 from logger import Logger
-log = Logger("Main").get_log()
+log = Logger("Servo").get_log()
 
 class Servo(object):
+    def __init__(self, name, id):
+        self.name = name
+        self.id = id
+        self.min_step = 50
+        self.max_step = 250
+        self.step_size = 10 # us
+        self.current_step = None
+        self.device = open('/dev/servoblaster', 'w')
+
+    def control(self, step, modifier=""):
+        instruction = "%s=%s%s" % (self.id, modifier, step)
+        #log.debug("Send: '%s'" % instruction)
+        self.device.write(instruction + "\n")
+        self.device.flush()
+        if modifier == "-":
+            self.current_step -= step
+        elif modifier == "+":
+            self.current_step += step
+        else:   
+            self.current_step = step
+
+class ServoPair(object):
     def __init__(self):
-        self.servoblaster = open('/dev/servoblaster', 'w')
+        self.horizontal_servo = Servo("Horizontal", 0)
+        self.vertical_servo = Servo("Vertical", 1)
 
-    def control(self, s, value, unit="%", modifier=""):
-        instruction = "%s=%s%s%s" % (s, modifier, value, unit)
-        log.debug("Send: '%s'" % instruction)
-        self.servoblaster.write(instruction + "\n")
-        self.servoblaster.flush()
-
-    def set_pan_percent(self, pct):
-        self.control(0, pct)
-
-    def set_tilt_percent(self, pct):
-        self.control(1, pct)
+    def set_step_coordinate(self, horiz, vert):
+        self.horizontal_servo.control(horiz)
+        self.vertical_servo.control(vert)
 
     def pan_left(self):
-        self.control(0, 5, "", "-")    
+        self.horizontal_servo.control(1, "-")    
 
     def pan_right(self):
-        self.control(0, 5, "", "+")    
+        self.horizontal_servo.control(1, "+")    
 
     def tilt_down(self):
-        self.control(1, 5, "", "-")    
+        self.vertical_servo.control(1, "-")    
 
     def tilt_up(self):
-        self.control(1, 5, "", "+")    
+        self.vertical_servo.control(1, "+")    
 
     def center(self):
-        self.control(0, 40)
-        self.control(1, 20)
-
-
+        self.set_step_coordinate(125, 95)
+        
 def main():
-    sleep_seconds=0.5
-    s = Servo()
-    s.set_pan_percent(10)
-    time.sleep(sleep_seconds)
-    s.set_pan_percent(80)
-    time.sleep(sleep_seconds)
-    s.set_pan_percent(40)
-    time.sleep(sleep_seconds)
-    s.set_tilt_percent(20)
-    time.sleep(sleep_seconds)
-    s.set_tilt_percent(80)
-    time.sleep(sleep_seconds)
-    s.set_tilt_percent(20)
-    for i in (range(0,10)):
+    coors = [
+        [90, 90], [90, 210], [210,210], [210,90], [125,95]
+    ]
+    s = ServoPair()
+    for h,v in coors:
+        s.set_step_coordinate(h, v)
+        time.sleep(0.5)
+
+    sleep_seconds = 0.01
+
+    s.center()
+    for i in (range(0,80)):
         time.sleep(sleep_seconds)
         s.tilt_up()
-    for i in (range(0,10)):
+
+    s.center()
+    for i in (range(0,20)):
         time.sleep(sleep_seconds)
         s.tilt_down()
-    for i in (range(0,10)):
+
+    s.center()
+    for i in (range(0,80)):
         time.sleep(sleep_seconds)
         s.pan_left()
-    for i in (range(0,10)):
+
+    s.center()
+    for i in (range(0,80)):
         time.sleep(sleep_seconds)
         s.pan_right()
+
     s.center()
 
 

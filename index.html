@@ -45,22 +45,34 @@ input.button {
             <tr><td class="statusHeader">GPU Temp</td><td class="statusData"><div id="gpuTemp"/></td></tr>
             <tr><td class="statusHeader">CPU Load</td><td class="statusData"><div id="cpuLoad"/></td></tr>
             <tr><td class="statusHeader">Core Volt</td><td class="statusData"><div id="coreVolt"/></td></tr>
+            <tr><td class="statusHeader">M1 Speed</td><td class="statusData"><div id="m1Speed"/></td></tr>
+            <tr><td class="statusHeader">M2 Speed</td><td class="statusData"><div id="m2Speed"/></td></tr>
+            <tr><td class="statusHeader">Servo 1</td><td class="statusData"><div id="servo1"/></td></tr>
+            <tr><td class="statusHeader">Servo 2</td><td class="statusData"><div id="servo2"/></td></tr>
         </table>
     </td>
 </tr>
 </table>
 
-<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="scriptTagWorker.postMessage({'command':'forward'});" />
-<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="scriptTagWorker.postMessage({'command':'turnleft'});" />
-<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="scriptTagWorker.postMessage({'command':'brake'});" />
-<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="scriptTagWorker.postMessage({'command':'turnright'});" />
-<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="scriptTagWorker.postMessage({'command':'backward'});" />
+<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="commandRelayWorker.postMessage({'command':'forward'});" />
+<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="commandRelayWorker.postMessage({'command':'turnleft'});" />
+<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="commandRelayWorker.postMessage({'command':'brake'});" />
+<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="commandRelayWorker.postMessage({'command':'turnright'});" />
+<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="commandRelayWorker.postMessage({'command':'backward'});" />
 
-<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="scriptTagWorker.postMessage({'command':'tiltup'});" />
-<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="scriptTagWorker.postMessage({'command':'panleft'});" />
-<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="scriptTagWorker.postMessage({'command':'center'});" />
-<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="scriptTagWorker.postMessage({'command':'panright'});" />
-<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="scriptTagWorker.postMessage({'command':'tiltdown'});" />
+<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="commandRelayWorker.postMessage({'command':'tiltup'});" />
+<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="commandRelayWorker.postMessage({'command':'panleft'});" />
+<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="commandRelayWorker.postMessage({'command':'center'});" />
+<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="commandRelayWorker.postMessage({'command':'panright'});" />
+<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="commandRelayWorker.postMessage({'command':'tiltdown'});" />
+
+<img id="opencv-view" src="" width="320" height="240" />
+<script type="text/javascript">
+window.setInterval(function()
+{
+    document.getElementById('opencv-view').src = "opencv-out.jpg?random=" + (new Date()).getTime();
+}, 5000);
+</script>
 
 <script type="text/javascript">
     var keyboardShortcuts = {
@@ -81,8 +93,10 @@ input.button {
 <script type="text/javascript" src="jsmpg.js"></script>
 
 <script type='text/worker' id='worker-script'>
-    var host =  "ws://192.168.0.6:9093/ws"; // for normal operation
+    var hostname = (new URL(decodeURIComponent(location.pathname))).hostname;
+    //var host =  "ws://192.168.0.6:9093/ws"; // for normal operation
     //var host =  "ws://127.0.0.1:9093/ws"; // for tunnelling
+    var host =  "ws://" + hostname + ":9093/ws";
     var socket = new WebSocket(host);
 
     if (socket) {
@@ -130,9 +144,10 @@ input.button {
     var vcContext = videoCanvas.getContext('2d');
     vcContext.fillStyle = '#444';
     vcContext.fillText('Connecting..', videoCanvas.width / 2 - 30, videoCanvas.height / 3);
-
-    var host =  "ws://192.168.0.6:8084/ws"; // for normal operation
+    var hostname = (new URL(location.origin)).hostname;
+    //var host =  "ws://192.168.0.6:8084/ws"; // for normal operation
     //var host =  "ws://127.0.0.1:8084/ws"; // for tunnelling
+    var host =  "ws://" + hostname + ":8084/ws";
     var socket = new WebSocket(host);
     var player = new jsmpeg(socket, { canvas: videoCanvas });
 
@@ -157,11 +172,11 @@ input.button {
         return new Worker(URL.createObjectURL(new Blob([script])));
     }
 
-    var scriptTagWorker = makeWorker(
+    var commandRelayWorker = makeWorker(
         document.getElementById('worker-script').textContent
     );
 
-    scriptTagWorker.onmessage = function (e) {
+    commandRelayWorker.onmessage = function (e) {
         var messageData = e.data;
         if (typeof(messageData) == "string") {
             messageData = JSON.parse(e.data);
@@ -177,7 +192,7 @@ input.button {
     document.onkeyup = function () {
         var keyId = event.keyCode;
         if (keyId in keyboardShortcuts) {
-            scriptTagWorker.postMessage({"command": keyboardShortcuts[keyId]});
+            commandRelayWorker.postMessage({"command": keyboardShortcuts[keyId]});
         }
     }
 </script>

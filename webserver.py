@@ -12,7 +12,7 @@ from Queue import Queue
 from threading import Thread
 
 from motor import MotorPair
-from servo import Servo
+from servo import ServoPair
 from system import System
 
 from logger import Logger
@@ -60,7 +60,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     def open(self):
         self.log.info('connection opened...')
         self.motor_pair = MotorPair()
-        self.servo = Servo()
+        self.servo = ServoPair()
             
         self.message_queue_thread = Thread(name="MessageQueueThread", target=message_queue_worker, args=(status_update_queue, self))
         self.message_queue_thread.setDaemon(True)
@@ -90,6 +90,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.servo.center()
         else:
             self.log.debug('unknown message received: %s' % (message))
+
+        message = json.dumps({"status":{"m1Speed":self.motor_pair.m1.speed,"m2Speed":self.motor_pair.m2.speed}})
+        self.status_update_queue.put(message)  
 
     def on_close(self):
         self.log.info('connection closed...')             

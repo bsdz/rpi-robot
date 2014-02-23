@@ -110,6 +110,8 @@ function start_all() {
         STREAM_SOURCE_DEVICE=/dev/video2
         LD_LIBRARY_PATH=./opencv-patched/lib/ $FACEDETECT_PATH &
     fi
+
+    #LD_LIBRARY_PATH=./opencv-patched/lib/ $FACEDETECT_PATH &
     
     echo "sleep to allow for jobs to start.."
     wait_tcp 127.0.0.1 8082 # strean server - video
