@@ -11,7 +11,7 @@ from servo import ServoPair
 from ultrasonic import Ultrasonic
 
 from logger import Logger
-log = Logger("Main").get_log()
+#log = Logger("Main").get_log()
 
 
 class AutoPilot(object):
@@ -20,14 +20,18 @@ class AutoPilot(object):
     def __init__(self):
         self.log.info('initialize autopilot..')
         self.motor_pair = MotorPair()
-        self.servo = ServoPair()
+        self.servo_pair = ServoPair()
         self.ultrasonic = Ultrasonic()
             
     def run(self):
         self.log.debug('running autopilot..')
 
         while True:
-            print self.scan_distance_periphery()
+            res = self.radial_distance_scan()
+            # choose max distance
+            target_dir = max(res, key=res.get)
+            # rotate facing max distance
+            # move forward while monitor distance until min distance reached
             sleep(1)
 
         """
@@ -38,24 +42,17 @@ class AutoPilot(object):
             self.motor_pair.set_velocity(0)
         """
     
-    def scan_distance_periphery(self):
-        self.log.debug('scanning distance periphery..')
+    def radial_distance_scan(self):
+        self.log.debug('scanning radial distance..')
 
         res = {}
-        self.servo.center()
-        for i in (range(0,60)):
+        center_position = self.servo_pair.horizontal.default_position()
+        for i in (range(center_position - 60, center_position + 60)):
             sleep(0.01)
-            self.servo.pan_left()
-            res[self.servo.horizontal_servo.current_step] = self.ultrasonic.measure()
-
+            self.servo_pair.horizontal.current_position(i)
+            distance = self.ultrasonic.measure()
+            res[i] = distance
         return res
-
-        #s.center()
-        #for i in (range(0,80)):
-        #    time.sleep(sleep_seconds)
-        #    s.pan_right()
-
-
 
 if __name__ == "__main__":
 

@@ -4,50 +4,64 @@ from logger import Logger
 log = Logger("Servo").get_log()
 
 class Servo(object):
-    def __init__(self, name, id):
+    def __init__(self, name, id, default_position):
         self.name = name
         self.id = id
         self.min_step = 50
         self.max_step = 250
         self.step_size = 10 # us
-        self.current_step = None
+        self.current = None
+        self.default = default_position
         self.device = open('/dev/servoblaster', 'w')
 
+    def default_position(self, position = None):
+        if position:
+            self.default = position
+        return self.default
+
+    def current_position(self, position):
+        if position:
+            self.control(position)
+        return self.current
+
     def control(self, step, modifier=""):
+        if not step:
+            step = self.default
         instruction = "%s=%s%s" % (self.id, modifier, step)
-        #log.debug("Send: '%s'" % instruction)
         self.device.write(instruction + "\n")
         self.device.flush()
+        #log.debug("Send: '%s'" % instruction)
         if modifier == "-":
-            self.current_step -= step
+            self.current -= step
         elif modifier == "+":
-            self.current_step += step
+            self.current += step
         else:   
-            self.current_step = step
+            self.current = step
 
 class ServoPair(object):
     def __init__(self):
-        self.horizontal_servo = Servo("Horizontal", 0)
-        self.vertical_servo = Servo("Vertical", 1)
+        self.horizontal = Servo("Horizontal", 0, 125)
+        self.vertical = Servo("Vertical", 1, 95)
 
-    def set_step_coordinate(self, horiz, vert):
-        self.horizontal_servo.control(horiz)
-        self.vertical_servo.control(vert)
+    def set_position_coordinates(self, horiz, vert):
+        self.horizontal.control(horiz)
+        self.vertical.control(vert)
 
     def pan_left(self):
-        self.horizontal_servo.control(1, "-")    
+        self.horizontal.control(1, "-")    
 
     def pan_right(self):
-        self.horizontal_servo.control(1, "+")    
+        self.horizontal.control(1, "+")    
 
     def tilt_down(self):
-        self.vertical_servo.control(1, "-")    
+        self.vertical.control(1, "-")    
 
     def tilt_up(self):
-        self.vertical_servo.control(1, "+")    
+        self.vertical.control(1, "+")    
 
     def center(self):
-        self.set_step_coordinate(125, 95)
+        # sets to default
+        self.set_position_coordinates(None, None)
         
 def main():
     coors = [
@@ -55,7 +69,7 @@ def main():
     ]
     s = ServoPair()
     for h,v in coors:
-        s.set_step_coordinate(h, v)
+        s.set_position_coordinates(h, v)
         time.sleep(0.5)
 
     sleep_seconds = 0.01
