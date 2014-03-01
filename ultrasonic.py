@@ -35,15 +35,17 @@ class Ultrasonic(object): # 21 trigger, 19 echo
             stop = time.time()
 
         # distance pulse travelled in that time is time
-        # multiplied by the speed of sound (cm/s)
-        return 34000 * (stop - start) / 2
+        # multiplied by the speed of sound (m/s)
+        return 340 * (stop - start) / 2
         
 def main():
     us = Ultrasonic("Main", 21, 19)
     raw_input("Press Enter to continue...")
     
     print "measure"
-    print us.measure()
+    while True:
+        print us.measure()
+        time.sleep(0.2)
     raw_input("Press Enter to continue...")
 
 
