@@ -12,6 +12,10 @@ input.button {
     width: 100px;
     position: absolute; 
 }
+input.autoPilotbutton {
+    height: 50px; 
+    width: 50px;
+}
 #logPanel {
     width:320px;
     height:240px;
@@ -50,6 +54,8 @@ input.button {
             <tr><td class="statusHeader">Servo 1</td><td class="statusData"><div id="servo1"/></td></tr>
             <tr><td class="statusHeader">Servo 2</td><td class="statusData"><div id="servo2"/></td></tr>
         </table>
+        <input class="autoPilotButton" style="" type="button" value="AP On" onclick="commandRelayWorker.postMessage({'command':'autopiloton'});" />
+        <input class="autoPilotButton" style="" type="button" value="AP Off" onclick="commandRelayWorker.postMessage({'command':'autopilotoff'});" />
     </td>
 </tr>
 </table>
@@ -66,6 +72,7 @@ input.button {
 <input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="commandRelayWorker.postMessage({'command':'panright'});" />
 <input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="commandRelayWorker.postMessage({'command':'tiltdown'});" />
 
+<!--
 <img id="opencv-view" src="" width="320" height="240" />
 <script type="text/javascript">
 window.setInterval(function()
@@ -73,6 +80,7 @@ window.setInterval(function()
     document.getElementById('opencv-view').src = "opencv-out.jpg?random=" + (new Date()).getTime();
 }, 5000);
 </script>
+-->
 
 <script type="text/javascript">
     var keyboardShortcuts = {

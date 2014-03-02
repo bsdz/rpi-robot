@@ -35,7 +35,7 @@ class AutoPilot(object):
 
     def __exit__(self, type, value, traceback):
         self.log.info('cleaning up..')
-        self.stop()
+        self.quit()
 
     def driver_queue_worker(self):
         self.log.info('starting...')
@@ -56,7 +56,7 @@ class AutoPilot(object):
                     self.motor_pair.bear_left(30)
 
             except Exception, ex:
-                self.log.error("exception: %s" % (ex))
+                self.log.error("exception: %s; %s" % (ex, sys.exc_info()[0]))
             except:
                 self.log.error("unexpected error: %s" % (sys.exc_info()[0]))
 
@@ -96,12 +96,29 @@ class AutoPilot(object):
                 elif instruction == "stop":
                     pass
             except Exception, ex:
-                self.log.error("exception: %s" % (ex))
+                self.log.error("exception: %s; %s" % (ex, sys.exc_info()[0]))
             except:
                 self.log.error("unexpected error: %s" % (sys.exc_info()[0]))
 
         self.log.info('finished')
-            
+
+    def control_worker(self):
+        self.log.info('starting...')
+        while True:
+            try:
+                instruction = self.drive_queue.get()
+                self.log.debug("processing instruction %s" % (instruction))
+                self.drive_queue.task_done()
+                if instruction == "quit":
+                    break
+
+            except Exception, ex:
+                self.log.error("exception: %s; %s" % (ex, sys.exc_info()[0]))
+            except:
+                self.log.error("unexpected error: %s" % (sys.exc_info()[0]))
+
+        self.log.info('finished')
+
     def start(self):
         self.log.debug('starting autopilot..')
 
@@ -117,30 +134,16 @@ class AutoPilot(object):
         self.measure_queue.put("start")
         self.drive_queue.put("forward")
 
-        while True:
-            #res = self.radial_distance_scan()
-            # choose max distance
-            #target_dir = max(res, key=res.get)
-            # rotate facing max distance
-            # move forward while monitor distance until min distance reached
-            #print "measurer thread alive: %s" % self.measurer_queue_thread.is_alive()
-            #print "driver thread alive: %s" % self.driver_queue_thread.is_alive()
-            sleep(1)
-
-        """
-            self.motor_pair.accelerate(10)
-            self.motor_pair.accelerate(-10) 
-            self.motor_pair.bear_left(-10)
-            self.motor_pair.bear_right(-10)
-            self.motor_pair.set_velocity(0)
-        """
-
     def stop(self):
+        self.measure_queue.put("stop")
+        self.drive_queue.put("brake")
+
+    def quit(self):
         self.measure_queue.put("quit")
         self.measurer_queue_thread.join()
         self.drive_queue.put("quit")
         self.driver_queue_thread.join()
-    
+
     def radial_distance_scan(self):
         self.log.debug('scanning radial distance..')
 
@@ -156,5 +159,6 @@ class AutoPilot(object):
 if __name__ == "__main__":
     with AutoPilot() as ap:
         ap.start()
+        raw_input("Press any key to stop.")
         ap.stop()
 

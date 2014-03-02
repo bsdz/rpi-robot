@@ -46,6 +46,7 @@ class ServoPair(object):
     def __init__(self):
         self.horizontal = Servo("Horizontal", 0)
         self.vertical = Servo("Vertical", 1)
+        self.center()
 
     def set_position_coordinates(self, horiz, vert):
         self.horizontal.position(horiz)

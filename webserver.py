@@ -14,6 +14,7 @@ from threading import Thread
 from motor import MotorPair
 from servo import ServoPair
 from system import System
+from autopilot import AutoPilot
 
 from logger import Logger
 log = Logger("Main").get_log()
@@ -61,6 +62,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.log.info('connection opened...')
         self.motor_pair = MotorPair()
         self.servo = ServoPair()
+        self.auto_pilot = AutoPilot()
             
         self.message_queue_thread = Thread(name="MessageQueueThread", target=message_queue_worker, args=(status_update_queue, self))
         self.message_queue_thread.setDaemon(True)
@@ -88,6 +90,10 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.servo.tilt_down()
         elif message == "center":
             self.servo.center()
+        elif message == "autopiloton":
+            self.auto_pilot.start()
+        elif message == "autopilotoff":
+            self.auto_pilot.stop()
         else:
             self.log.debug('unknown message received: %s' % (message))
 
