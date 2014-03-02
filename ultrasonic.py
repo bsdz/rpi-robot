@@ -8,6 +8,8 @@ gpio.setwarnings(False)
 gpio.setmode(gpio.BOARD)
 
 class Ultrasonic(object): # 21 trigger, 19 echo
+    log = Logger("Ultrasonic").get_log()
+
     def __init__(self, name = "Main", pin_trigger = 21, pin_echo = 19):
         self.name = name
         self.pin_trigger = pin_trigger

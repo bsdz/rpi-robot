@@ -20,10 +20,10 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 class AutoPilot(object):
-    log = Logger("Main").get_log()
+    log = Logger("AutoPilot").get_log()
     
     def __init__(self):
-        self.log.info('autopilot: initialize..')
+        self.log.info('initialize..')
         self.motor_pair = MotorPair()
         self.servo_pair = ServoPair()
         self.ultrasonic = Ultrasonic()
@@ -34,15 +34,15 @@ class AutoPilot(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.log.info('autopilot: cleaning up..')
+        self.log.info('cleaning up..')
         self.stop()
 
     def driver_queue_worker(self):
-        self.log.info('starting driver queue worker...')
+        self.log.info('starting...')
         while True:
             try:
                 instruction = self.drive_queue.get()
-                self.log.debug("DriverQueueWorker: processing instruction %s" % (instruction))
+                self.log.debug("processing instruction %s" % (instruction))
                 self.drive_queue.task_done()
                 if instruction == "quit":
                     self.motor_pair.set_velocity(0)
@@ -50,50 +50,57 @@ class AutoPilot(object):
                 elif instruction == "brake":
                     self.motor_pair.set_velocity(0)
                 elif instruction == "forward":
-                    self.motor_pair.set_velocity(50)
+                    self.motor_pair.set_velocity(30)
                 elif instruction == "rotate":
                     self.motor_pair.set_velocity(0)
-                    self.motor_pair.bear_left(40)
+                    self.motor_pair.bear_left(30)
 
-                """
-                self.motor_pair.accelerate(10)
-                self.motor_pair.accelerate(-10) 
-                self.motor_pair.bear_left(-10)
-                self.motor_pair.bear_right(-10)
-                self.motor_pair.set_velocity(0)
-                """
-                    
             except Exception, ex:
-                self.log.error("DriverQueueWorker: exception: %s" % (ex))
+                self.log.error("exception: %s" % (ex))
             except:
-                self.log.error("DriverQueueWorker: unexpected error: %s" % (sys.exc_info()[0]))
+                self.log.error("unexpected error: %s" % (sys.exc_info()[0]))
+
+        self.log.info('finished')
 
     def measurer_queue_worker(self):
-        self.log.info('starting measurer queue worker...')
+        self.log.info('starting...')
         while True:
             try:
                 instruction = self.measure_queue.get()
-                self.log.debug("MeasurerQueueWorker: processing instruction %s" % (instruction))
+                self.log.debug("processing instruction %s" % (instruction))
                 self.measure_queue.task_done()
                 if instruction == "quit":
                     break
                 elif instruction == "start":
+                    weight_threshold = 0
+                    last_instruction = None
                     while self.measure_queue.empty():  
-                        # take measurements and act
                         distance = self.ultrasonic.measure()
-                        self.log.debug("Measured distance %s" % (distance))
-                        if distance < 0.4:
-                            self.drive_queue.put("rotate") 
-                        elif distance >= 0.4:
-                            self.drive_queue.put("forward") 
+                        #self.log.debug("Measured distance %s; threshold: %s" % (distance, weight_threshold))
+                        if distance < 0.4 and weight_threshold > -10:
+                            weight_threshold -= 1
+                        elif distance >= 0.4 and weight_threshold < 10:
+                            weight_threshold += 1
+
+                        if weight_threshold == -10:
+                            instruction = "rotate"
+                        elif weight_threshold == 10:
+                            instruction = "forward"
+                        
+                        if instruction and (not last_instruction or last_instruction != instruction):
+                            self.log.debug("sending drive queue instruction: %s" % instruction)
+                            self.drive_queue.put(instruction) 
+                            last_instruction = instruction
 
                         sleep(0.01)
                 elif instruction == "stop":
                     pass
             except Exception, ex:
-                self.log.error("MeasurerQueueWorker: exception: %s" % (ex))
+                self.log.error("exception: %s" % (ex))
             except:
-                self.log.error("MeasurerQueueWorker: unexpected error: %s" % (sys.exc_info()[0]))
+                self.log.error("unexpected error: %s" % (sys.exc_info()[0]))
+
+        self.log.info('finished')
             
     def start(self):
         self.log.debug('starting autopilot..')
@@ -106,6 +113,7 @@ class AutoPilot(object):
         self.driver_queue_thread.setDaemon(True)
         self.driver_queue_thread.start()
 
+        self.servo_pair.center()
         self.measure_queue.put("start")
         self.drive_queue.put("forward")
 
@@ -115,6 +123,8 @@ class AutoPilot(object):
             #target_dir = max(res, key=res.get)
             # rotate facing max distance
             # move forward while monitor distance until min distance reached
+            #print "measurer thread alive: %s" % self.measurer_queue_thread.is_alive()
+            #print "driver thread alive: %s" % self.driver_queue_thread.is_alive()
             sleep(1)
 
         """

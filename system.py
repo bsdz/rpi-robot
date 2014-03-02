@@ -6,6 +6,8 @@ from logger import Logger
 log = Logger("Main").get_log()
 
 class System(object):
+    log = Logger("System").get_log()
+
     def __init__(self):
         pass
 

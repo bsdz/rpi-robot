@@ -8,6 +8,8 @@ gpio.setwarnings(False)
 gpio.setmode(gpio.BOARD)
 
 class Motor(object): # 7,11,13,15
+    log = Logger("Motor").get_log()
+
     def __init__(self, name, pin_enable1, pin_enable2, pin_input1, pin_input2):
         self.name = name
         self.pin_enable1 = pin_enable1
@@ -46,7 +48,7 @@ class Motor(object): # 7,11,13,15
         if speed > 100: speed = self.maximum_speed
         if speed < 0: speed = 0
         self.speed = speed
-        log.debug("motor %s set speed: %s; direction: %s" % (self.name, self.speed, self.direction))
+        self.log.debug("motor %s set speed: %s; direction: %s" % (self.name, self.speed, self.direction))
         # override actual motor speed to avoid ineffective pwm duty cycle
         actual_motor_speed = self.minimum_speed if speed != 0 and speed < self.minimum_speed else speed		
         gpio.output(self.pin_input1, in1)

@@ -11,7 +11,7 @@ class Logger(object):
 
         console_lh = logging.StreamHandler()
         console_lh.setFormatter(
-            logging.Formatter("%(levelname)s|%(asctime)s|%(filename)s:%(lineno)d|%(message)s"))
+            logging.Formatter("%(levelname)s|%(asctime)s|%(filename)s:%(lineno)d|%(name)s|%(funcName)s|%(message)s"))
         console_lh.setLevel(logging.DEBUG)
         self.log.addHandler(console_lh)
         self.log.setLevel(logging.DEBUG)

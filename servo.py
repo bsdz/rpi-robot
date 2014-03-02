@@ -1,9 +1,11 @@
 import time
 
 from logger import Logger
-log = Logger("Servo").get_log()
+log = Logger("Main").get_log()
 
 class Servo(object):
+    log = Logger("Servo").get_log()
+
     def __init__(self, name, id):
         self.name = name
         self.id = id
@@ -15,7 +17,7 @@ class Servo(object):
 
     def position(self, position = None, steps_per_second = 200):
         if position:
-            log.debug("servo %s: setting position %s" % (self.name, position))
+            self.log.debug("servo %s: setting position %s" % (self.name, position))
             if not self.current:
                 self.control(position)
             elif position != self.current:
@@ -30,7 +32,7 @@ class Servo(object):
         instruction = "%s=%s%s" % (self.id, modifier, step)
         self.device.write(instruction + "\n")
         self.device.flush()
-        #log.debug("servo %s: send instruction '%s'" % (self.name, instruction))
+        #self.log.debug("servo %s: send instruction '%s'" % (self.name, instruction))
         if modifier == "-":
             self.current -= step
         elif modifier == "+":
@@ -39,6 +41,8 @@ class Servo(object):
             self.current = step
 
 class ServoPair(object):
+    log = Logger("ServoPair").get_log()
+
     def __init__(self):
         self.horizontal = Servo("Horizontal", 0)
         self.vertical = Servo("Vertical", 1)
