@@ -73,6 +73,9 @@ class Motor(object): # 7,11,13,15
         velocity = (self.speed * self.direction) + delta
         self.set_velocity(velocity) 
 
+    def get_velocity(self):
+        return self.direction * self.speed
+
         
 class MotorPair(object):
 

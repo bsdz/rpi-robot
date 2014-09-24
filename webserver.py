@@ -6,6 +6,7 @@ import tornado.websocket
 import tornado.template
 import json
 import sys
+import traceback
 
 from time import sleep
 from Queue import Queue
@@ -14,6 +15,7 @@ from threading import Thread
 from motor import MotorPair
 from servo import ServoPair
 from system import System
+from ultrasonic import Ultrasonic
 from autopilot import AutoPilot
 
 from logger import Logger
@@ -24,49 +26,31 @@ class MainHandler(tornado.web.RequestHandler):
         loader = tornado.template.Loader(".")
         self.write(loader.load("index.html").generate())
         #log.info(repr(self.request))
-        
-def status_update_worker(status_update_queue):
-    log.info('starting status update worker...')
-    si = System()
-    while True:
-        try:
-            message = json.dumps({"status":{"cpuTemp":si.cpu_temperature(),"gpuTemp":si.gpu_temperature(),"coreVolt":si.core_voltage(),"cpuLoad":100*si.cpu_load()}})
-            status_update_queue.put(message)  
-            sleep(10) 
-        except Exception, ex:
-            log.error("StatusUpdateWorker Exception: %s" % (ex))
-        except:
-            log.error("StatusUpdateWorker Unexpected Error: %s" % (sys.exc_info()[0]))
-        
-def message_queue_worker(status_update_queue, web_socket_handler):
-    log.info('starting message queue worker...')
-    while True:
-        try:
-            item = status_update_queue.get()
-            log.debug("writing item %s" % (item))
-            web_socket_handler.write_message(item, binary=False)
-            status_update_queue.task_done()       
-        except Exception, ex:
-            log.error("MessageQueueWorker Exception: %s" % (ex))
-        except:
-            log.error("MergeQueueWorker Unexpected Error: %s" % (sys.exc_info()[0]))
             
 
 class WSHandler(tornado.websocket.WebSocketHandler):
-    log = Logger("Main").get_log()
+    log = Logger("WSHandler").get_log()
     
-    def initialize(self, status_update_queue):
-        self.status_update_queue = status_update_queue
+    def initialize(self):
+        self.status_update_queue = Queue()
+        self.status_update_thread = Thread(name="StatusUpdateThread", target=self.status_update_worker)
+        self.status_update_thread.setDaemon(True)
+        self.status_update_thread.start()  
 
     def open(self):
         self.log.info('connection opened...')
         self.motor_pair = MotorPair()
         self.servo = ServoPair()
+        self.ultrasonic = Ultrasonic()
         self.auto_pilot = AutoPilot()
+        self.auto_pilot_active = False
             
-        self.message_queue_thread = Thread(name="MessageQueueThread", target=message_queue_worker, args=(status_update_queue, self))
+        self.message_queue_thread = Thread(name="MessageQueueThread", target=self.message_queue_worker)
         self.message_queue_thread.setDaemon(True)
-        self.message_queue_thread.start()  
+        self.message_queue_thread.start()
+
+    def on_close(self):
+        self.log.info('connection closed...')             
 
     def on_message(self, message):
         self.log.debug('received: %s' % (message))
@@ -92,30 +76,62 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             self.servo.center()
         elif message == "autopiloton":
             self.auto_pilot.start()
+            self.auto_pilot_on = True
         elif message == "autopilotoff":
             self.auto_pilot.stop()
+            self.auto_pilot_on = False
         else:
             self.log.debug('unknown message received: %s' % (message))
 
-        message = json.dumps({"status":{"m1Speed":self.motor_pair.m1.speed,"m2Speed":self.motor_pair.m2.speed}})
-        self.status_update_queue.put(message)  
-
-    def on_close(self):
-        self.log.info('connection closed...')             
+        message = {
+            "status": {
+                "m1Speed": self.motor_pair.m1.get_velocity(),
+                "m2Speed": self.motor_pair.m2.get_velocity(),
+                "servoHoriz": self.servo.horizontal.current,
+                "servoVert": self.servo.vertical.current,
+            }
+        }
+        self.status_update_queue.put(json.dumps(message))
+        
+    def status_update_worker(self):
+        log.info('starting..')
+        si = System()
+        while True:
+            try:
+                message = {
+                    "status": {
+                        "cpuTemp": si.cpu_temperature(),
+                        "gpuTemp": si.gpu_temperature(),
+                        "coreVolt": si.core_voltage(),
+                        "cpuLoad": 100*si.cpu_load()
+                    }
+                }
+                if not self.auto_pilot_active:
+                    message["status"]["forwardDistance"] = self.ultrasonic.measure()
+                self.status_update_queue.put(json.dumps(message))  
+                sleep(1) 
+            except:
+                ex = sys.exc_info()
+                self.log.error("exception: %s; %s; %s" % (ex[0], ex[1], traceback.format_tb(ex[2])))
+        
+    def message_queue_worker(self):
+        log.info('starting..')
+        while True:
+            try:
+                item = self.status_update_queue.get()
+                self.log.debug("writing item %s" % (item))
+                self.write_message(item, binary=False)
+                self.status_update_queue.task_done()       
+            except:
+                ex = sys.exc_info()
+                self.log.error("exception: %s; %s; %s" % (ex[0], ex[1], traceback.format_tb(ex[2])))
 
 if __name__ == "__main__":
-
-    status_update_queue = Queue()
-
     application = tornado.web.Application([
-        (r'/ws', WSHandler, {"status_update_queue": status_update_queue}),
+        (r'/ws', WSHandler),
         (r'/', MainHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {"path": "./resources"}),
     ])
-
-    status_update_thread = Thread(name="StatusUpdateThread", target=status_update_worker, args=(status_update_queue,))
-    status_update_thread.setDaemon(True)
-    status_update_thread.start()  
 
     application.listen(9093)
     tornado.ioloop.IOLoop.instance().start()

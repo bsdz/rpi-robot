@@ -15,7 +15,7 @@ class Ultrasonic(object): # 21 trigger, 19 echo
         self.pin_trigger = pin_trigger
         self.pin_echo = pin_echo
         gpio.setup(self.pin_trigger, gpio.OUT)
-        gpio.setup(self.pin_echo, gpio.IN)
+        gpio.setup(self.pin_echo, gpio.IN, pull_up_down=gpio.PUD_DOWN)
         #time.sleep(0.5) # let settle
         
     def __del__(self):      
@@ -29,13 +29,14 @@ class Ultrasonic(object): # 21 trigger, 19 echo
         gpio.output(self.pin_trigger, True)
         time.sleep(0.00001)
         gpio.output(self.pin_trigger, False)
+
         start = time.time()
         while gpio.input(self.pin_echo) == 0:
             start = time.time()
-
+        stop = time.time()
         while gpio.input(self.pin_echo) == 1:
             stop = time.time()
-
+        
         # distance pulse travelled in that time is time
         # multiplied by the speed of sound (m/s)
         return 340 * (stop - start) / 2

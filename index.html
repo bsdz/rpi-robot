@@ -49,10 +49,11 @@ input.autoPilotbutton {
             <tr><td class="statusHeader">GPU Temp</td><td class="statusData"><div id="gpuTemp"/></td></tr>
             <tr><td class="statusHeader">CPU Load</td><td class="statusData"><div id="cpuLoad"/></td></tr>
             <tr><td class="statusHeader">Core Volt</td><td class="statusData"><div id="coreVolt"/></td></tr>
+            <tr><td class="statusHeader">For Dist</td><td class="statusData"><div id="forwardDistance"/></td></tr>
             <tr><td class="statusHeader">M1 Speed</td><td class="statusData"><div id="m1Speed"/></td></tr>
             <tr><td class="statusHeader">M2 Speed</td><td class="statusData"><div id="m2Speed"/></td></tr>
-            <tr><td class="statusHeader">Servo 1</td><td class="statusData"><div id="servo1"/></td></tr>
-            <tr><td class="statusHeader">Servo 2</td><td class="statusData"><div id="servo2"/></td></tr>
+            <tr><td class="statusHeader">Servo H</td><td class="statusData"><div id="servoHoriz"/></td></tr>
+            <tr><td class="statusHeader">Servo V</td><td class="statusData"><div id="servoVert"/></td></tr>
         </table>
         <input class="autoPilotButton" style="" type="button" value="AP On" onclick="commandRelayWorker.postMessage({'command':'autopiloton'});" />
         <input class="autoPilotButton" style="" type="button" value="AP Off" onclick="commandRelayWorker.postMessage({'command':'autopilotoff'});" />

@@ -8,7 +8,7 @@ fi
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
-V4L2CTL_PATH=/usr/local/bin/v4l2-ctl
+V4L2CTL_PATH=/usr/bin/v4l2-ctl
 WEBSERVER_PATH=./webserver.py
 FACEDETECT_PATH=./facedetect.py
 NODEJS_PATH=./node-v0.10.2-linux-arm-pi/bin/node
