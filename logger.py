@@ -11,7 +11,7 @@ class Logger(object):
         console_lh = logging.StreamHandler()
         console_lh.setFormatter(
             logging.Formatter("%(levelname)s|%(asctime)s|%(filename)s:%(lineno)d|%(name)s|%(funcName)s|%(message)s"))
-        console_lh.setLevel(logging.ERROR)
+        console_lh.setLevel(logging.DEBUG)
         self.log.addHandler(console_lh)
 
         file_lh = logging.FileHandler("./robot.log")
@@ -20,7 +20,7 @@ class Logger(object):
         file_lh.setLevel(logging.DEBUG)
         self.log.addHandler(file_lh)
 
-        #self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.DEBUG)
 
     def get_log(self):
         return self.log;

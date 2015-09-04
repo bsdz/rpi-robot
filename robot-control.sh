@@ -11,9 +11,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 V4L2CTL_PATH=/usr/bin/v4l2-ctl
 WEBSERVER_PATH=./webserver.py
 FACEDETECT_PATH=./facedetect.py
-NODEJS_PATH=./node-v0.10.2-linux-arm-pi/bin/node
-SERVOD_PATH=./ServoBlaster-User/servod
-SERVOD_OPTS="--p1pins=24,26 --idle-timeout=2000"
+NODEJS_PATH=/usr/bin/nodejs
 
 USE_FACE_DETECT=false
 
@@ -60,8 +58,8 @@ function wait_tcp () {
  
 function stop_all() {
     echo Stopping all processes..
-    killall servod
-    killall node
+    killall pigpiod
+    killall nodejs
     killall webserver.py
     killall avconv
     killall facedetect.py
@@ -70,7 +68,7 @@ function stop_all() {
 
 function unregister_modules() {
     modprobe -r bcm2835-v4l2
-    rmmod v4l2loopback
+    modprobe -r v4l2loopback
 }
 
 function register_modules() {
@@ -81,10 +79,10 @@ function register_modules() {
     
     echo "registering loopback video (/dev/video2).."
     modprobe videodev
-    insmod ./v4l2loopback/v4l2loopback.ko video_nr=2
+    modprobe v4l2loopback video_nr=2
   
-    echo "registering servoblaster (/dev/servoblaster).."
-    $SERVOD_PATH $SERVOD_OPTS >/dev/null
+    echo "starting pigpiod.."
+    pigpiod >/dev/null
 }
 
 function check_status() {
