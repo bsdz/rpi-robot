@@ -1,7 +1,7 @@
 import RPi.GPIO as gpio
 import time
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 gpio.setwarnings(False)
@@ -43,13 +43,13 @@ class Ultrasonic(object): # 21 trigger, 19 echo
         
 def main():
     us = Ultrasonic("Main", 21, 19)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     
-    print "measure"
+    print("measure")
     while True:
-        print us.measure()
+        print(us.measure())
         time.sleep(0.2)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
 
 
 if __name__ == "__main__":

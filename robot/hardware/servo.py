@@ -1,17 +1,18 @@
 import time
 import pigpio
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 class Servo(object):
     log = Logger("Servo").get_log()
 
-    def __init__(self, name, gpio):
+    def __init__(self, name, gpio, minimum = 1000, maximum = 2000, center = 1500):
         self.name = name
         self.gpio = gpio
-        self.min_step = 1000
-        self.max_step = 2000
+        self.min_step = minimum
+        self.max_step = maximum
+        self.center_step = center
         self.step_size = 10 # us
         self.current = None
         self.pigpio = pigpio.pi()
@@ -22,10 +23,14 @@ class Servo(object):
             if not self.current:
                 self.control(position)
             elif position != self.current:
-                for p in range(self.current, position + 1, cmp(position, self.current)):
+                cmp = (position > self.current) - (position < self.current)
+                for p in range(self.current, position + 1, cmp):
                     self.control(p)
                     time.sleep(1 / steps_per_second)
         return self.current
+
+    def center(self):
+        return self.control(self.center_step)
 
     def control(self, step, modifier=None):
         if not modifier and (step < self.min_step or step > self.max_step):
@@ -45,8 +50,8 @@ class ServoPair(object):
     log = Logger("ServoPair").get_log()
 
     def __init__(self):
-        self.horizontal = Servo("Horizontal", 7)
-        self.vertical = Servo("Vertical", 8)
+        self.horizontal = Servo("Horizontal", 8, 550, 2050, 1250)
+        self.vertical = Servo("Vertical", 7, 830, 2300, 900)
         self.center()
 
     def set_position_coordinates(self, horiz, vert):
@@ -54,8 +59,8 @@ class ServoPair(object):
         self.vertical.position(vert)
 
     def center(self):
-        self.horizontal.position(1500)
-        self.vertical.position(1500)
+        self.horizontal.center()
+        self.vertical.center()
 
     def pan_left(self):
         self.horizontal.control(1, "-")    
@@ -76,7 +81,7 @@ def main():
 
     log.info("test coordinates..")
     coors = [
-        [1000, 1000], [1000, 2000], [2000,2000], [2000,1000], [1500,1500]
+        [550, 830], [550, 830], [2050,2300], [2050,2300], [1250,900]
     ]
     for h,v in coors:
         s.set_position_coordinates(h, v)

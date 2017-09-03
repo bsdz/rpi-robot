@@ -1,7 +1,7 @@
 import RPi.GPIO as gpio
 import time
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 gpio.setwarnings(False)
@@ -57,7 +57,7 @@ class Motor(object): # 7,11,13,15
         self.gpio_enable2.start(actual_motor_speed)                                  
        
     def set_velocity(self, velocity=0, coast_on_brake=False):
-        self.direction = cmp(velocity, 0)
+        self.direction = (velocity > 0) - (velocity < 0)
         self.speed = abs(velocity)
         if self.direction == 1:
             self.control(False, True, self.speed)
@@ -115,41 +115,41 @@ class MotorPair(object):
 
 def main():
     mp = MotorPair()
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     
-    print "forward"
+    log.info("forward")
     mp.set_velocity(40)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
 
-    print "backward"
+    log.info("backward")
     mp.set_velocity(-40)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
 
-    print "rotate left"
+    log.info("rotate left")
     mp.rotate_left()
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
 
-    print "rotate right"
+    log.info("rotate right")
     mp.rotate_right()
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     
-    print "bear left"
+    log.info("bear left")
     mp.set_velocity(50)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     mp.bear_left(10)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
  
-    print "bear left"
+    log.info("bear left")
     mp.set_velocity(50)
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     mp.bear_right(10)
-    raw_input("Press Enter to continue...")       
+    input("Press Enter to continue...")       
     
-    print "accelerate test"
+    log.info("accelerate test")
     mp.set_velocity(-50)
-    for i in xrange(0,9):
+    for i in range(0,9):
         mp.accelerate(10)
-        raw_input("Press Enter to continue...")
+        input("Press Enter to continue...")
 
 
 if __name__ == "__main__":

@@ -4,14 +4,14 @@ import sys
 import traceback
 import signal
 from time import sleep
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
-from motor import MotorPair
-from servo import ServoPair
-from ultrasonic import Ultrasonic
+from robot.hardware.motor import MotorPair
+from robot.hardware.servo import ServoPair
+from robot.hardware.ultrasonic import Ultrasonic
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 def signal_handler(signal, frame):
@@ -29,6 +29,8 @@ class AutoPilot(object):
         self.motor_pair = MotorPair()
         self.servo_pair = ServoPair()
         self.ultrasonic = Ultrasonic()
+        
+        self.is_active = False
 
         self.safe_to_proceed = False
 
@@ -65,10 +67,12 @@ class AutoPilot(object):
     def start(self):
         self.log.debug('starting autopilot..')
         self.control_queue.put("start")
+        self.is_active = True
 
     def stop(self):
         self.log.debug('stopping autopilot..')
         self.control_queue.put("stop")
+        self.is_active = False
 
     def driver_queue_worker(self):
         self.log.info('starting..')
@@ -172,6 +176,6 @@ if __name__ == "__main__":
         ap.start()
         while True:
             sleep(1)
-        raw_input("Press any key to stop.")
+        input("Press any key to stop.")
         ap.stop()
 

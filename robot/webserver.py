@@ -9,16 +9,16 @@ import sys
 import traceback
 
 from time import sleep
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 
-from motor import MotorPair
-from servo import ServoPair
-from system import System
-from ultrasonic import Ultrasonic
-from autopilot import AutoPilot
+from robot.hardware.motor import MotorPair
+from robot.hardware.servo import ServoPair
+from robot.hardware.system import System
+from robot.hardware.ultrasonic import Ultrasonic
+from robot.autopilot import AutoPilot
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 class MainHandler(tornado.web.RequestHandler):
@@ -43,7 +43,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         self.servo = ServoPair()
         self.ultrasonic = Ultrasonic()
         self.auto_pilot = AutoPilot()
-        self.auto_pilot_active = False
             
         self.message_queue_thread = Thread(name="MessageQueueThread", target=self.message_queue_worker)
         self.message_queue_thread.setDaemon(True)
@@ -106,7 +105,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                         "cpuLoad": 100*si.cpu_load()
                     }
                 }
-                if not self.auto_pilot_active:
+                if not self.auto_pilot.is_active:
                     message["status"]["forwardDistance"] = self.ultrasonic.measure()
                 self.status_update_queue.put(json.dumps(message))  
                 sleep(1) 
@@ -126,13 +125,17 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                 ex = sys.exc_info()
                 self.log.error("exception: %s; %s; %s" % (ex[0], ex[1], traceback.format_tb(ex[2])))
 
-if __name__ == "__main__":
+def start_web_application():
     application = tornado.web.Application([
         (r'/ws', WSHandler),
         (r'/', MainHandler),
         (r"/(.*)", tornado.web.StaticFileHandler, {"path": "./resources"}),
     ])
 
-    application.listen(9093)
+    application.listen(9093)    
     tornado.ioloop.IOLoop.instance().start()
+
+if __name__ == "__main__":
+    start_web_application()
+    
  

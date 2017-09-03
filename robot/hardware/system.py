@@ -2,14 +2,11 @@ import time
 from subprocess import check_output
 from re import findall
 
-from logger import Logger
+from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 class System(object):
     log = Logger("System").get_log()
-
-    def __init__(self):
-        pass
 
     def cpu_temperature(self):
         with open("/sys/class/thermal/thermal_zone0/temp") as f:
@@ -17,12 +14,12 @@ class System(object):
 
     def gpu_temperature(self):
         out = check_output(['/opt/vc/bin/vcgencmd','measure_temp'])
-        matches = findall("temp=(.*)'C", out)
+        matches = findall("temp=(.*)'C", out.decode("utf8"))
         return float(matches[0]) if matches else None
 
     def core_voltage(self): 
         out = check_output(['/opt/vc/bin/vcgencmd','measure_volts'])
-        matches = findall("volt=(.*)V", out)
+        matches = findall("volt=(.*)V", out.decode("utf8"))
         return float(matches[0]) if matches else None
 
     def time_list(self):
@@ -30,7 +27,7 @@ class System(object):
         Fetches a list of time units the cpu has spent in various modes
         Detailed explanation at http://www.linuxhowtos.org/System/procstat.htm
         """
-        cpuStats = file("/proc/stat", "r").readline()
+        cpuStats = open("/proc/stat", "r").readline()
         columns = cpuStats.replace("cpu", "").split(" ")
         return map(int, filter(None, columns))
 
@@ -58,10 +55,10 @@ class System(object):
 
 def main():
     s = System()
-    print s.cpu_temperature()
-    print s.gpu_temperature()
-    print s.core_voltage()
-    print s.cpu_load()
+    print(s.cpu_temperature())
+    print(s.gpu_temperature())
+    print(s.core_voltage())
+    print(s.cpu_load())
 
 if __name__ == "__main__":
     #import ptvsd

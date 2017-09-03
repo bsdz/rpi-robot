@@ -1,9 +1,9 @@
 import logging
 
-from singleton import Singleton
+from .singleton import Singleton
 
-class Logger(object):
-    __metaclass__ = Singleton
+class Logger(metaclass=Singleton):
+
 
     def __init__(self, name):
         self.log = logging.getLogger(name)

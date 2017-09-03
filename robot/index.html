@@ -38,7 +38,7 @@ input.autoPilotbutton {
 <table style="">
 <tr>
     <td>
-        <canvas id="videoCanvas" width="320" height="240" style="border:1px solid #000000;"></canvas>
+        <img src="http://192.168.0.34:8080/stream/video.mjpeg" width="320" height="240" alt="image" style="border:1px solid #000000;" >
     </td>
     <td>
         <div id='logPanel'></div>
@@ -149,16 +149,16 @@ window.setInterval(function()
         }
     });
 
-    var videoCanvas = document.getElementById('videoCanvas');
-    var vcContext = videoCanvas.getContext('2d');
-    vcContext.fillStyle = '#444';
-    vcContext.fillText('Connecting..', videoCanvas.width / 2 - 30, videoCanvas.height / 3);
-    var hostname = (new URL(location.origin)).hostname;
+    //var videoCanvas = document.getElementById('videoCanvas');
+    //var vcContext = videoCanvas.getContext('2d');
+    //vcContext.fillStyle = '#444';
+    //vcContext.fillText('Connecting..', videoCanvas.width / 2 - 30, videoCanvas.height / 3);
+    //var hostname = (new URL(location.origin)).hostname;
     //var host =  "ws://192.168.0.6:8084/ws"; // for normal operation
     //var host =  "ws://127.0.0.1:8084/ws"; // for tunnelling
-    var host =  "ws://" + hostname + ":8084/ws";
-    var socket = new WebSocket(host);
-    var player = new jsmpeg(socket, { canvas: videoCanvas });
+    //var host =  "ws://" + hostname + ":8084/ws";
+    //var socket = new WebSocket(host);
+    //var player = new jsmpeg(socket, { canvas: videoCanvas });
 
     function updateStatus(statusMessage) {
         for (var key in statusMessage) {
