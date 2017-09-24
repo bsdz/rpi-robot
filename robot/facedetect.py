@@ -1,8 +1,5 @@
 #!/usr/bin/python
  
-from sys import path
-path.append("./opencv-patched/lib/python2.7/dist-packages/")
-
 import cv2
 import time
 import numpy as np
@@ -10,7 +7,7 @@ import numpy as np
 def clock():
     return cv2.getTickCount() / cv2.getTickFrequency()
     
-def draw_string(image, (x, y), s):
+def draw_string(image, x, y, s):
     cv2.putText(image, s, (x+1, y+1), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 0), thickness = 2, lineType=cv2.LINE_AA)
     cv2.putText(image, s, (x, y), cv2.FONT_HERSHEY_PLAIN, 1.0, (255, 255, 255), lineType=cv2.LINE_AA)    
 
@@ -30,16 +27,17 @@ def draw_rectangles(image, rectangles, color):
  
 def main():
     detect_eyes = False
-    cascade_dir = r"./opencv-patched/share/OpenCV/haarcascades/"
+    cascade_dir = r"/usr/local/share/OpenCV/haarcascades/"
     #face_cascade = cv2.CascadeClassifier("%s/haarcascade_frontalface_default.xml" % (cascade_dir))
     #face_cascade = cv2.CascadeClassifier("%s/haarcascade_frontalface_alt2.xml" % (cascade_dir))    
     #face_cascade = cv2.CascadeClassifier("%s/haarcascade_frontalface_alt_tree.xml" % (cascade_dir))
     face_cascade = cv2.CascadeClassifier("%s/haarcascade_frontalface_alt.xml" % (cascade_dir))
     eye_cascade = cv2.CascadeClassifier("%s/haarcascade_eye.xml" % (cascade_dir))
     
-    print "start cap"
-    capture = cv2.VideoCapture("http://127.0.0.1:8082/SeCrEt/320/240/")
-    print "cap started"
+    print("start cap")
+    #capture = cv2.VideoCapture("http://127.0.0.1:8082/SeCrEt/320/240/")
+    capture = cv2.VideoCapture(-1)
+    print("cap started")
     #capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
     #capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
     #capture.set(cv2.CAP_PROP_FPS, 30)
@@ -53,9 +51,9 @@ def main():
     
     while True:
         t = clock()
-        print "read image"
+        print("read image")
         success, image = capture.read()
-        print success
+        print(success)
         if success:
             #grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             #grayscale_image = cv2.equalizeHist(grayscale_image)

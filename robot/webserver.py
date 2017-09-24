@@ -7,6 +7,7 @@ import tornado.template
 import json
 import sys
 import traceback
+import os
 
 from time import sleep
 from queue import Queue
@@ -21,11 +22,7 @@ from robot.autopilot import AutoPilot
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        loader = tornado.template.Loader(".")
-        self.write(loader.load("index.html").generate())
-        #log.info(repr(self.request))
+root = os.path.dirname(__file__)
             
 
 class WSHandler(tornado.websocket.WebSocketHandler):
@@ -128,8 +125,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 def start_web_application():
     application = tornado.web.Application([
         (r'/ws', WSHandler),
-        (r'/', MainHandler),
-        (r"/(.*)", tornado.web.StaticFileHandler, {"path": "./resources"}),
+        (r"/(.*)", tornado.web.StaticFileHandler, {"path": root + "/static", "default_filename": "index.html"}),
     ])
 
     application.listen(9093)    

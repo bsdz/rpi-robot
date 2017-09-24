@@ -22,6 +22,9 @@ Install uv4l as in https://github.com/weiss19ja/amos-ss16-proj2/wiki/Videostream
 Install pigpio
 * Build as in https://github.com/joan2937/pigpio/ and http://abyz.co.uk/rpi/pigpio/download.html
 
+Permissions to gpio
+sudo chown root.gpio /dev/gpiomem
+sudo chmod g+rw /dev/gpiomem
 
 
 Running

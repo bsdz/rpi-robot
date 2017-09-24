@@ -47,7 +47,6 @@ def register_modules():
     execute_command(["modprobe", "v4l2loopback", "video_nr=2"])
   
     log.info("starting pigpiod..")
-    #pigpiod >/dev/null
     execute_command(["pigpiod"])
     
 def unregister_modules():
@@ -60,13 +59,27 @@ def unregister_modules():
 
 
 def start_robot():
-    p = Process(target=start_web_application)
-    p.start()
-    #p.join()
-    while True:
-        sleep(0.5)
-
+    workers = []
     
+    log.info("Starting web process..")
+    web_process = Process(target=start_web_application)
+    web_process.daemon = True
+    web_process.start()
+    
+    workers.append(web_process)
+
+
+    try:
+        for w in workers:
+            w.join()
+    except KeyboardInterrupt:
+        for w in workers:
+            w.terminate()
+            
+    #p.join()
+    #while True:
+    #    sleep(0.5)
+ 
     
 def main():
     parser = argparse.ArgumentParser()
@@ -87,6 +100,8 @@ def main():
         register_modules()
     elif args.unregister:
         unregister_modules()
+    elif args.start:
+        start_robot()
 
 if __name__ == "__main__":
     main()
