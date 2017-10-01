@@ -6,6 +6,32 @@
 </head>
 
 <style>
+input.button {
+    height: 100px; 
+    width: 100px;
+    position: absolute; 
+}
+input.autoPilotbutton {
+    height: 50px; 
+    width: 50px;
+}
+#logPanel {
+    width:320px;
+    height:240px;
+    overflow:auto;
+    border:1px solid #000000;
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px
+}
+.statusHeader {
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px;
+    font-weight: bold
+}
+.statusData {
+    font-family:"Courier New", Courier, monospace;
+    font-size:10px;
+}
 </style>
 
 
@@ -14,18 +40,168 @@
 <table style="">
 <tr>
     <td>
-        <img src="http://192.168.0.34:8080/stream/video.mjpeg" width="320" height="240" alt="image" style="border:1px solid #000000;" >
+    	<div id='videoPanel'></div>
+    </td>
+     <td>
+        <div id='logPanel'></div>
+    </td>
+    <td style="vertical-align:text-top;">
+        <table id="sysInfoTable">
+        </table>
     </td>
 </tr>
 </table>
+    
+<input class="autoPilotButton" style="" type="button" value="AP On" onclick="socketSend('command', 'autopiloton');" />
+<input class="autoPilotButton" style="" type="button" value="AP Off" onclick="socketSend('command', 'autopilotoff');" />
+   
+<input class="button" style="left: 150px; top: 300px" type="button" value="Forward (&uarr;)" onclick="socketSend('command', 'forward');" />
+<input class="button" style="left: 050px; top: 400px" type="button" value="Turn Left (&larr;)" onclick="socketSend('command', 'turnleft');" />
+<input class="button" style="left: 150px; top: 400px" type="button" value="Stop (shift)" onclick="socketSend('command', 'brake');" />
+<input class="button" style="left: 250px; top: 400px" type="button" value="Turn Right (&rarr;)" onclick="socketSend('command', 'turnright');" />
+<input class="button" style="left: 150px; top: 500px" type="button" value="Backward (&darr;)" onclick="socketSend('command', 'backward');" />
+
+<input class="button" style="left: 550px; top: 300px" type="button" value="Tilt up (w)" onclick="socketSend('command', 'tiltup');" />
+<input class="button" style="left: 450px; top: 400px" type="button" value="Pan Left (a)" onclick="socketSend('command', 'panleft');" />
+<input class="button" style="left: 550px; top: 400px" type="button" value="Center (s)" onclick="socketSend('command', 'center');" />
+<input class="button" style="left: 650px; top: 400px" type="button" value="Pan Right (d)" onclick="socketSend('command', 'panright');" />
+<input class="button" style="left: 550px; top: 500px" type="button" value="Tilt down (x)" onclick="socketSend('command', 'tiltdown');" />
 
 
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script src="/static/scripts/webrtc-streamer/ajax.js" ></script>
+<script src="/static/scripts/webrtc-streamer/webrtcstreamer.js" ></script>
+
+
 <script type="text/javascript" charset="utf-8">
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
-    socket.on('connect', function() {
-        socket.emit('my event', {data: 'I\'m connected!'});
-    });
+	var sysInfoWSUrl = "ws://" + location.host + "/sys-info-ws";
+    
+    var videoSource = "{{video_source}}";
+    
+    var sysInfoTable = $("#sysInfoTable");
+    var videoPanel = $('#videoPanel');
+    
+    var keyboardShortcuts = {
+            16: "brake",
+            17: "brake",
+            37: "left",
+            38: "forward",
+            39: "right",
+            40: "backward",
+            83: "center",
+            65: "panleft",
+            87: "tiltup",
+            68: "panright",
+            88: "tiltdown"
+        };
+    
+    function logInfo(txt) {
+        document.getElementById('logPanel').innerHTML += txt + '<br />';
+    }
+    
+    var socket = new WebSocket(sysInfoWSUrl);
+    if (socket) {
+        socket.onopen = function() {
+            logInfo("Web service: socket open to host: " + sysInfoWSUrl);
+        }
+
+        socket.onmessage = function(msg) {
+            var data = JSON.parse(msg.data);
+        	if ("status" in data) {
+        		for (const [ key, value ] of Object.entries(data["status"])) {
+        			var labelTd = sysInfoTable.find(`td:contains('${key}')`);
+        			if (!labelTd.length) {
+        	            var trHtml = `<tr><td class='statusHeader'>${key}</td><td class='statusData'>${value}</td></tr>`;
+        	            sysInfoTable.append(trHtml);
+        			}
+        			else {
+        				labelTd.next().text(value);
+        			}
+        		}
+            }
+        	else {
+            	logInfo(msg.data);
+        	}
+        }
+
+        socket.onclose = function() {
+        	logInfo("Web service: The connection has been closed.");
+        }
+        
+        function socketSend(msgType, msgData) {
+        	var msg = {};
+        	msg[msgType] = msgData;
+        	socket.send(JSON.stringify(msg));
+        }
+        
+        document.onkeyup = function () {
+            var keyId = event.keyCode;
+            if (keyId in keyboardShortcuts) {
+            	socketSend("command", keyboardShortcuts[keyId]);
+            }
+        }
+        
+        if (videoSource == "server_mjpeg_stream") {
+        	var imgHtml = `<img id="imageVideo" width="320" height="240" style="border:1px solid #000000;" >`;
+            videoPanel.append(imgHtml);
+            var img = document.querySelector("#imageVideo");
+            
+            img.src = "/video-feed";
+            
+            
+        }
+        else if (videoSource == "server_webrtc_stream") {
+        	var videoHtml = `<video id="video" width="320" height="240" style="border:1px solid #000000;" ></video>`;
+            videoPanel.append(videoHtml);
+            var video = document.querySelector("#video");
+        	
+			var svcurl = "http://192.168.0.40:8000";
+			var webRtcServer = undefined;
+			
+			function onGetDeviceList(deviceList) {
+				if (deviceList.length > 0) {
+					webRtcServer = new WebRtcStreamer("video", svcurl);
+					webRtcServer.connect(deviceList[0].video, deviceList[0].audio);
+				}
+			}
+			
+			window.onload = function() {
+				send(svcurl + "/getMediaList", null, null, onGetDeviceList);
+			}
+			window.onbeforeunload = function() {
+				webRtcServer.disconnect()
+			};
+		}
+		else if (videoSource == "client_webcam") {
+        	var videoHtml = `<video id="video" width="320" height="240" style="border:1px solid #000000;" ></video>`;
+            videoPanel.append(videoHtml);
+            var video = document.querySelector("#video");
+			
+            navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia || navigator.oGetUserMedia;
+			 
+			if (navigator.getUserMedia) {       
+			    navigator.getUserMedia({video: true}, handleVideo, videoError);
+			}
+			 
+			function handleVideo(stream) {
+			    video.src = window.URL.createObjectURL(stream);
+			    socketSend("clientVideoConnected", true)
+			}
+			 
+			function videoError(e) {
+			}
+			
+			var canvas = document.createElement('canvas');
+			canvas.height = video.height;
+			canvas.width = video.width;
+			canvas.getContext('2d').drawImage(video, 0, 0);
+		}
+		else {
+			logInfo(`Unknown video source '${videoSource}'`)
+		}
+    }
+    else {
+    	logInfo("Web service: Failed to create socket.");
+    }
 </script>
 
 </body>

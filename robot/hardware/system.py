@@ -1,60 +1,51 @@
-import time
 from subprocess import check_output
 from re import findall
+from pathlib import Path
+import psutil
 
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
-class System(object):
-    log = Logger("System").get_log()
+class SystemInfo(object):
+    log = Logger("SystemInfo").get_log()
 
     def cpu_temperature(self):
-        with open("/sys/class/thermal/thermal_zone0/temp") as f:
-            return float(f.read().strip())/1000
+        p = Path("/sys/class/thermal/thermal_zone0/temp")
+        if p.exists():
+            with p.open() as f:
+                return float(f.read().strip())/1000
+        return None
 
     def gpu_temperature(self):
-        out = check_output(['/opt/vc/bin/vcgencmd','measure_temp'])
-        matches = findall("temp=(.*)'C", out.decode("utf8"))
-        return float(matches[0]) if matches else None
+        p = Path('/opt/vc/bin/vcgencmd')
+        if p.exists():
+            out = check_output(['/opt/vc/bin/vcgencmd','measure_temp'])
+            matches = findall("temp=(.*)'C", out.decode("utf8"))
+            if matches:
+                float(matches[0])
+        return None
 
-    def core_voltage(self): 
-        out = check_output(['/opt/vc/bin/vcgencmd','measure_volts'])
-        matches = findall("volt=(.*)V", out.decode("utf8"))
-        return float(matches[0]) if matches else None
+    def core_voltage(self):
+        p = Path('/opt/vc/bin/vcgencmd')
+        if p.exists():
+            out = check_output(['/opt/vc/bin/vcgencmd','measure_volts'])
+            matches = findall("volt=(.*)V", out.decode("utf8"))
+            if matches:
+                return float(matches[0])
+        return None
 
-    def time_list(self):
-        """
-        Fetches a list of time units the cpu has spent in various modes
-        Detailed explanation at http://www.linuxhowtos.org/System/procstat.htm
-        """
-        cpuStats = open("/proc/stat", "r").readline()
-        columns = cpuStats.replace("cpu", "").split(" ")
-        return map(int, filter(None, columns))
-
-    def delta_time(self, interval):
-        """
-        Returns the difference of the cpu statistics returned by getTimeList
-        that occurred in the given time delta
-        """
-        timeList1 = self.time_list()
-        time.sleep(interval)
-        timeList2 = self.time_list()
-        return [(t2-t1) for t1, t2 in zip(timeList1, timeList2)]
 
     def cpu_load(self):
         """
         Returns the cpu load as a value from the interval [0.0, 1.0]
         """
         INTERVAL = 0.1
-        dt = list(self.delta_time(INTERVAL))
-        idle_time = float(dt[3])
-        total_time = sum(dt)
-        load = 1-(idle_time/total_time)
+        load = psutil.cpu_percent(interval=INTERVAL)
         return load
         
 
 def main():
-    s = System()
+    s = SystemInfo()
     print(s.cpu_temperature())
     print(s.gpu_temperature())
     print(s.core_voltage())
