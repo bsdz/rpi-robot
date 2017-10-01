@@ -178,14 +178,18 @@ async def websocket_handler(request):
 
     return ws
 
+
+
+module_dir = os.path.dirname(__file__)
+
 app.router.add_get('/', index)
 app.router.add_get('/video-feed', video_feed)
 app.router.add_route('GET', '/sys-info-ws', websocket_handler)
 app.router.add_static('/static/',
-                  path=r'D:\Projects\rpi-robot\robot\static',
+                  path=os.path.join(module_dir, "static", ""),
                   name='static')
 
-aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(r'D:\Projects\rpi-robot\robot\templates'))
+aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(module_dir, "templates", "")))
 #web.run_app(app, host='0.0.0.0', port=8080)
 
 async def init(loop):
