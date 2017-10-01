@@ -1,5 +1,10 @@
 import time
-import pigpio
+
+try:
+    from pigpio import pi
+except:
+    from robot.utility.mockgpio import PIGpioMock
+    pi = PIGpioMock
 
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
@@ -15,7 +20,7 @@ class Servo(object):
         self.center_step = center
         self.step_size = 10 # us
         self.current = None
-        self.pigpio = pigpio.pi()
+        self.pigpio = pi()
 
     def position(self, position = None, steps_per_second = 200):
         if position:

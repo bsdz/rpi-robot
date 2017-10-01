@@ -16,8 +16,6 @@ from robot.webserver import start_web_application
 
 V4L2CTL_PATH="/usr/bin/v4l2-ctl"
 #WEBSERVER_PATH=./webserver.py
-#FACEDETECT_PATH=./facedetect.py
-#NODEJS_PATH=/usr/bin/nodejs
 
 class CommandResults(object):
     def __init__(self, out, err, retcode):
@@ -42,19 +40,12 @@ def register_modules():
     execute_command([V4L2CTL_PATH, "--set-ctrl", "video_bitrate=100000"])
     execute_command([V4L2CTL_PATH, "--set-fmt-video=width=320,height=240,pixelformat=5"])
     
-    log.info("registering loopback video (/dev/video2)..")
-    execute_command(["modprobe", "videodev"])
-    execute_command(["modprobe", "v4l2loopback", "video_nr=2"])
-  
     log.info("starting pigpiod..")
     execute_command(["pigpiod"])
     
 def unregister_modules():
     log.info("unregistering onboard camera (/dev/video0)..")
     execute_command(["modprobe", "-r", "bcm2835-v4l2"])
-    
-    log.info("unregistering loopback video (/dev/video2)..")
-    execute_command(["modprobe", "-r", "v4l2loopback"])
     
 
 
