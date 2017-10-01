@@ -194,7 +194,7 @@ aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(module_dir
 
 async def init(loop):
     handler = app.make_handler()
-    srv = await loop.create_server(handler, '0.0.0.0', 8080)
+    srv = await loop.create_server(handler, '0.0.0.0', settings.http_server_port)
     log.info('serving on ' + repr(srv.sockets[0].getsockname()))
     return srv
 

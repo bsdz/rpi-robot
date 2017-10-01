@@ -1,7 +1,7 @@
 import os
 
 haar_cascade_dir = r"D:\Projects\opencv\data\haarcascades" if os.name == 'nt' else r"/usr/local/share/OpenCV/haarcascades"
-http_server_port = 8080
+http_server_port = 8090
 video_width = 640
 video_height = 480
 video_capture_device = 0 if os.name == "nt" else -1
