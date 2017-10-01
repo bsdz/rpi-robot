@@ -16,6 +16,12 @@ import async_timeout
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
+
+from robot.hardware.motor import MotorPair
+from robot.hardware.servo import ServoPair
+from robot.hardware.ultrasonic import Ultrasonic
+#from robot.autopilot import AutoPilot
+
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
@@ -27,8 +33,52 @@ client_image_queue_lock = asyncio.Lock()
 
 image_capture_count = 0
 
-
 app = web.Application()
+
+motor_pair = MotorPair()
+servo = ServoPair()
+ultrasonic = Ultrasonic()
+#auto_pilot = AutoPilot()
+
+def process_command(message):
+    log.debug('received: %s' % (message))
+    if message == "forward":
+        motor_pair.accelerate(10)
+    elif message == "backward":
+        motor_pair.accelerate(-10) 
+    elif message == "turnleft":
+        motor_pair.bear_left(-10)
+    elif message == "turnright":
+        motor_pair.bear_right(-10)
+    elif message == "brake":
+        motor_pair.set_velocity(0)
+    elif message == "panleft":
+        servo.pan_left()
+    elif message == "panright":
+        servo.pan_right()
+    elif message == "tiltup":
+        servo.tilt_up()
+    elif message == "tiltdown":
+        servo.tilt_down()
+    elif message == "center":
+        servo.center()
+    #elif message == "autopiloton":
+    #    auto_pilot.start()
+    #    auto_pilot_on = True
+    #elif message == "autopilotoff":
+    #    auto_pilot.stop()
+    #    auto_pilot_on = False
+    else:
+        log.debug('unknown message received: %s' % (message))
+
+#     message = {
+#         "status": {
+#             "m1Speed": self.motor_pair.m1.get_velocity(),
+#             "m2Speed": self.motor_pair.m2.get_velocity(),
+#             "servoHoriz": self.servo.horizontal.current,
+#             "servoVert": self.servo.vertical.current,
+#         }
+#     }
 
 async def camera_detect_worker():
     face_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_frontalface_alt.xml"))
@@ -137,7 +187,8 @@ async def system_info_websocket_heartbeat(ws):
                 "GPU Temp": si.gpu_temperature(),
                 "Core Volt": si.core_voltage(),
                 "CPU Load": si.cpu_load(),
-                "Images #": image_capture_count
+                "Images #": image_capture_count,
+                "Forward Distance": ultrasonic.measure()
             }
         }
         ws.send_json(message)
@@ -168,6 +219,8 @@ async def websocket_handler(request):
                     allow_camera_capture.release()
                 else:
                     allow_camera_capture.acquire()
+            elif "command" in data:
+                process_command(data["command"])
             else:
                 log.info("Unrecognized message: " + msg.data)
         elif msg.type == WSMsgType.ERROR:

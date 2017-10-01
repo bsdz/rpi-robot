@@ -58,7 +58,4 @@ def main():
 
 
 if __name__ == "__main__":
-    #import ptvsd
-    #ptvsd.enable_attach(secret = 'rfvgy7', address = ('0.0.0.0', 8080))
-    #ptvsd.wait_for_attach()
     main()
