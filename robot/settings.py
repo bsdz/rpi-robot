@@ -1,5 +1,9 @@
 import os
 
+import robot
+
+log_file = os.path.join(os.path.dirname(os.path.dirname(robot.__file__)), "robot.log")
+
 haar_cascade_dir = r"D:\Projects\opencv\data\haarcascades" if os.name == 'nt' else r"/usr/local/share/OpenCV/haarcascades"
 http_server_port = 8090
 video_width = 640
