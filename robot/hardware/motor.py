@@ -1,9 +1,4 @@
-try:
-    import RPi.GPIO as gpio
-except:
-    from robot.utility.mockgpio import GpioMock
-    gpio = GpioMock()
-
+from robot.hardware.gpio import gpio
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 

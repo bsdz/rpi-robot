@@ -1,11 +1,6 @@
 import time
 
-try:
-    from pigpio import pi
-except:
-    from robot.utility.mockgpio import PIGpioMock
-    pi = PIGpioMock
-
+from robot.hardware.gpio import pi
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
