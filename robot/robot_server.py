@@ -31,7 +31,10 @@ client_log_message_queue = asyncio.Queue()
 client_image_queue = asyncio.Queue(maxsize=1)
 client_image_queue_lock = asyncio.Lock()
 
-image_capture_count = 0
+class ImageCaptureData(object):
+    def __init__(self):
+        self.count = 0
+        self.face_detected = False
 
 app = web.Application()
 
@@ -39,6 +42,8 @@ motor_pair = MotorPair()
 servo = ServoPair()
 ultrasonic = Ultrasonic()
 #auto_pilot = AutoPilot()
+
+image_capture_data = ImageCaptureData()
 
 def process_command(message):
     log.debug('received: %s' % (message))
@@ -84,7 +89,6 @@ async def camera_detect_worker():
     face_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_frontalface_alt.xml"))
     eye_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_eye.xml"))
     smile_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_smile.xml"))
-    sF = 1.05
     
     await allow_camera_capture.acquire()
     log.info("Capturing camera...")
@@ -92,40 +96,40 @@ async def camera_detect_worker():
     video_capture = cv2.VideoCapture(settings.video_capture_device)
     video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, settings.video_width)
     video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.video_height)
-    global image_capture_count
+    global image_capture_data
     
     while True:
         success, image = video_capture.read()
         if success:
-            image_capture_count += 1
+            image_capture_data.count += 1
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
             faces = face_cascade.detectMultiScale(
                 gray,
-                scaleFactor=sF,
+                scaleFactor=1.05,
                 minNeighbors=8,
                 minSize=(55, 55),
                 flags=cv2.CASCADE_SCALE_IMAGE
             )
-            #if faces:
-            #    await client_log_message_queue.put(repr(faces))
-            # ---- Draw a rectangle around the faces
-        
-             
+            
+            if not list(faces):
+                image_capture_data.face_detected = False
+                
             for (x, y, w, h) in faces:
+                image_capture_data.face_detected = True
+                
                 cv2.rectangle(image, (x, y), (x+w, y+h), (0, 0, 255), 2)
                 roi_gray = gray[y:y+h, x:x+w]
                 roi_color = image[y:y+h, x:x+w]
          
                 smiles = smile_cascade.detectMultiScale(
                     roi_gray,
-                    scaleFactor= 1.7,
+                    scaleFactor=1.7,
                     minNeighbors=22,
                     minSize=(25, 25),
                     flags=cv2.CASCADE_SCALE_IMAGE
-                    )
+                )
          
-                # Set region of interest for smiles
                 for (x, y, w, h) in smiles:
                     cv2.putText(image,"Smile detected", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                     cv2.rectangle(roi_color, (x, y), (x+w, y+h), (255, 0, 0), 1)
@@ -138,23 +142,20 @@ async def camera_detect_worker():
                     flags=cv2.CASCADE_SCALE_IMAGE
                 )
                 
-                # Set region of interest for smiles
                 for (x, y, w, h) in eyes:
-                    #cv2.putText(image,"Smile detected", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
                     cv2.rectangle(roi_color, (x, y), (x+w, y+h), (0, 255, 0), 1)
-        
+            
+                
             with (await client_image_queue_lock):
                 image_jpeg_bytes = cv2.imencode('.jpg', image)[1].tobytes()
                 if client_image_queue.full():
                     client_image_queue.get_nowait()
                 client_image_queue.put_nowait(image_jpeg_bytes)
         
-        await asyncio.sleep(.2)
-
+        await asyncio.sleep(settings.video_capture_sleep_seconds)
 
 @aiohttp_jinja2.template('index.html')
 async def index(request):
-
     if settings.video_source == "server_mjpeg_stream":
         allow_camera_capture.release()
     return dict({"video_source": settings.video_source})
@@ -191,7 +192,7 @@ async def video_feed(request, timeout=10):
 
 async def system_info_websocket_heartbeat(ws):
     si = SystemInfo()
-    global image_capture_count
+    global image_capture_data
     while True:
         message = {
             "status": {
@@ -199,7 +200,8 @@ async def system_info_websocket_heartbeat(ws):
                 "GPU Temp": si.gpu_temperature(),
                 "Core Volt": si.core_voltage(),
                 "CPU Load": si.cpu_load(),
-                "Images #": image_capture_count,
+                "Images #": image_capture_data.count,
+                "Face detected": image_capture_data.face_detected,
                 "Forward Distance": ultrasonic.measure()
             }
         }
@@ -255,11 +257,10 @@ app.router.add_static('/static/',
                   name='static')
 
 aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(module_dir, "templates", "")))
-#web.run_app(app, host='0.0.0.0', port=8080)
 
 async def init(loop):
     handler = app.make_handler()
-    srv = await loop.create_server(handler, '0.0.0.0', settings.http_server_port)
+    srv = await loop.create_server(handler, settings.http_server_address, settings.http_server_port)
     log.info('serving on ' + repr(srv.sockets[0].getsockname()))
     return srv
 
