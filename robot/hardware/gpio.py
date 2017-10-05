@@ -27,9 +27,11 @@ except:
     gpio = GpioMock()
     
 try:
-    from pigpio import pi
+    from pigpio import pi, INPUT, EITHER_EDGE
 except:
     pi = PIGpioMock
+    INPUT = 0
+    EITHER_EDGE = 1
     
 def system_register():
     if os.getuid() != 0:
