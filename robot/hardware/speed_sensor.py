@@ -1,11 +1,11 @@
 import time
 
-from robot.hardware.gpio import pi, INPUT, EITHER_EDGE
+from robot.hardware.gpio import pigpio_instance, INPUT, EITHER_EDGE
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
 def cbf(gpio, level, tick):
-   print(gpio, level, tick)
+    print(gpio, level, tick)
 
 class SpeedSensor(object):
     log = Logger("SpeedSensor").get_log()
@@ -14,7 +14,7 @@ class SpeedSensor(object):
         self.name = name
         self.gpio1 = gpio1
         self.gpio2 = gpio2
-        self.pigpio = pi()
+        self.pigpio = pigpio_instance
 
         self.pigpio.set_mode(gpio1, INPUT)
         self.pigpio.set_mode(gpio2, INPUT)

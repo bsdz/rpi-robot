@@ -13,6 +13,8 @@ video_capture_device = 0 if os.name == "nt" else -1
 video_source = "server_mjpeg_stream"
 video_capture_sleep_seconds = 0.2
 
+pigpio_server = "192.168.0.34" if os.name == "nt" else None
+
 gpio_wheel_motor_left_enable_1 = 7 # pin number
 gpio_wheel_motor_left_enable_2 = 11 # pin number
 gpio_wheel_motor_left_input_1 = 13 # pin number

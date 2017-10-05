@@ -1,6 +1,6 @@
 import time
 
-from robot.hardware.gpio import pi
+from robot.hardware.gpio import pigpio_instance
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
@@ -15,7 +15,7 @@ class Servo(object):
         self.center_step = center
         self.step_size = 10 # us
         self.current = None
-        self.pigpio = pi()
+        self.pigpio = pigpio_instance
 
     def position(self, position = None, steps_per_second = 200):
         if position:

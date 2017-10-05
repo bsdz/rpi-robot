@@ -1,48 +1,49 @@
 import time
+import threading
 
-from robot.hardware.gpio import gpio 
+from robot.hardware.gpio import pigpio_instance, INPUT, OUTPUT, PUD_DOWN, FALLING_EDGE, tickDiff
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
-gpio.setwarnings(False)
-gpio.setmode(gpio.BOARD)
-
-class Ultrasonic(object): # 21 trigger, 19 echo
+class Ultrasonic(object):
     log = Logger("Ultrasonic").get_log()
 
-    def __init__(self, name = "Main", pin_trigger = 21, pin_echo = 19):
+    def __init__(self, name = "Main", gpio_trigger = 9, gpio_echo = 10):
         self.name = name
-        self.pin_trigger = pin_trigger
-        self.pin_echo = pin_echo
-        gpio.setup(self.pin_trigger, gpio.OUT)
-        gpio.setup(self.pin_echo, gpio.IN, pull_up_down=gpio.PUD_DOWN)
-        #time.sleep(0.5) # let settle
+        self.gpio_trigger = gpio_trigger
+        self.gpio_echo = gpio_echo
         
-    def __del__(self):      
-        gpio.cleanup(self.pin_trigger)
-        gpio.cleanup(self.pin_echo)
-
+        self.pigpio = pigpio_instance
+        self.pigpio.set_mode(gpio_trigger, OUTPUT)
+        self.pigpio.set_mode(gpio_echo, INPUT)
+        self.pigpio.set_pull_up_down(gpio_echo, PUD_DOWN)
+        
+        self.event = threading.Event()
+        
     def measure(self):
-        gpio.output(self.pin_trigger, False) # set to low
-
-        # Send 10us pulse to trigger
-        gpio.output(self.pin_trigger, True)
-        time.sleep(0.00001)
-        gpio.output(self.pin_trigger, False)
-
-        start = time.time()
-        while gpio.input(self.pin_echo) == 0:
-            start = time.time()
-        stop = time.time()
-        while gpio.input(self.pin_echo) == 1:
-            stop = time.time()
+        self.distance = None
+        self.event.clear()
         
-        # distance pulse travelled in that time is time
-        # multiplied by the speed of sound (m/s)
-        return 340 * (stop - start) / 2
+        self.pigpio.write(self.gpio_trigger, 0) # set to low
+                
+        def cbf(gpio, level, tick):
+            # distance pulse travelled in that time is time
+            # multiplied by the speed of sound (m/s)
+            ping_micros = tickDiff(self.start_tick, tick)
+            self.distance = (ping_micros * 340) / 2 / 1000
+            self.event.set()
         
+        self.pigpio.callback(self.gpio_echo, FALLING_EDGE, cbf)
+        
+        # Send 10us pulse to trigger        
+        self.start_tick = self.pigpio.get_current_tick()
+        self.pigpio.gpio_trigger(self.gpio_trigger, 10, 1)
+        self.event.wait()
+                
+        return self.distance
+     
 def main():
-    us = Ultrasonic("Main", 21, 19)
+    us = Ultrasonic("Main", 9, 10)
     input("Press Enter to continue...")
     
     print("measure")
