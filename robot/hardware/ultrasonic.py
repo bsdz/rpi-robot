@@ -30,7 +30,7 @@ class Ultrasonic(object):
             # distance pulse travelled in that time is time
             # multiplied by the speed of sound (m/s)
             ping_micros = tickDiff(self.start_tick, tick)
-            self.distance = (ping_micros * 340) / 2 / 1000
+            self.distance = (ping_micros * 340.29) / 2 / 1000
             self.event.set()
         
         self.pigpio.callback(self.gpio_echo, FALLING_EDGE, cbf)

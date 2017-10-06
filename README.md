@@ -1,26 +1,32 @@
-
-
 Requirements
 
-Hardware
+# Hardware #
 
-Video camera
+* Video camera
+* Ultrasonic sensor
+* 2 x Servos
+* 2 x Motors + Controller + Chasis
+* Speed sensor
+* Microswitches
 
+# Software # 
 
-Software
-Create virtualenv with python 3.6
-Install python packages in requirements.txt file.
+* Python 3.6
+* Python packages in requirements.txt.
+* pigpio - see https://github.com/joan2937/pigpio/ and http://abyz.co.uk/rpi/pigpio/download.html
 
-Install pigpio
-* Build as in https://github.com/joan2937/pigpio/ and http://abyz.co.uk/rpi/pigpio/download.html
+# Configuration #
 
-Permissions to gpio
-sudo chown root.gpio /dev/gpiomem
-sudo chmod g+rw /dev/gpiomem
+* Build robot according to specification.
+* Create virtualenv with python 3.6 (uses async).
+* Install python packages in requirements.txt file.
+* In /etc/rc.local add:
+	chown root.gpio /dev/gpiomem
+	chmod g+rw /dev/gpiomem
+	pigpiod
 
+# Running #
 
-Running
-sudo bash
-activate virtualenv
-got to cloned code folder
-python -m robot.control --register 
+* Activate virtualenv
+* Go to cloned code folder
+* python -m robot.robot_server main
