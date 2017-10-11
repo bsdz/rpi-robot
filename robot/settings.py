@@ -13,20 +13,34 @@ video_capture_device = 0 if os.name == "nt" else -1
 video_source = "server_mjpeg_stream"
 video_capture_sleep_seconds = 0.2
 
-pigpio_server = "192.168.0.34" if os.name == "nt" else None
+pigpio_server = "192.168.0.36" if os.name == "nt" else None
 
-gpio_wheel_motor_left_enable_1 = 7 # pin number
-gpio_wheel_motor_left_enable_2 = 11 # pin number
-gpio_wheel_motor_left_input_1 = 13 # pin number
-gpio_wheel_motor_left_input_2 = 15 # pin number
+# GPIO pin numbers
+#
+gpio_wheel_motor_left_enable_1 = 4
+gpio_wheel_motor_left_enable_2 = 17
+gpio_wheel_motor_left_input_1 = 27
+gpio_wheel_motor_left_input_2 = 22
 
-gpio_wheel_motor_right_enable_1 = 12 # pin number
-gpio_wheel_motor_right_enable_2 = 16 # pin number
-gpio_wheel_motor_right_input_1 = 18 # pin number
-gpio_wheel_motor_right_input_2 = 22 # pin number
+gpio_wheel_motor_right_enable_1 = 18
+gpio_wheel_motor_right_enable_2 = 23
+gpio_wheel_motor_right_input_1 = 24
+gpio_wheel_motor_right_input_2 = 25
 
-gpio_camera_servo_horizontal = 8 # gpio number 
-gpio_camera_servo_vertical = 7 # gpio number
+gpio_camera_servo_horizontal = 8 
+gpio_camera_servo_vertical = 7
 
-gpio_ultrasonic_trigger = 21 # pin number
-gpio_ultrasonic_echo = 19 # pin number
+gpio_ultrasonic_trigger = 9
+gpio_ultrasonic_echo = 10
+
+# hardware settings
+#
+camera_servo_horizontal_minimum = 550 
+camera_servo_horizontal_maximum = 2050
+camera_servo_horizontal_center = 1250
+
+camera_servo_vertical_minimum = 830
+camera_servo_vertical_maximum = 2300
+camera_servo_vertical_center = 900
+
+wheel_sensor_notches = 20

@@ -1,6 +1,7 @@
 import time
 import threading
 
+import robot.settings as settings
 from robot.hardware.gpio import pigpio_instance, INPUT, OUTPUT, PUD_DOWN, FALLING_EDGE, tickDiff
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
@@ -8,7 +9,7 @@ log = Logger("Main").get_log()
 class Ultrasonic(object):
     log = Logger("Ultrasonic").get_log()
 
-    def __init__(self, name = "Main", gpio_trigger = 9, gpio_echo = 10):
+    def __init__(self, name = "Main", gpio_trigger = settings.gpio_ultrasonic_trigger, gpio_echo = settings.gpio_ultrasonic_echo):
         self.name = name
         self.gpio_trigger = gpio_trigger
         self.gpio_echo = gpio_echo
@@ -30,7 +31,7 @@ class Ultrasonic(object):
             # distance pulse travelled in that time is time
             # multiplied by the speed of sound (m/s)
             ping_micros = tickDiff(self.start_tick, tick)
-            self.distance = (ping_micros * 340.29) / 2 / 1000
+            self.distance = (ping_micros * 340.29) / 2 / 1000000
             self.event.set()
         
         self.pigpio.callback(self.gpio_echo, FALLING_EDGE, cbf)
@@ -43,13 +44,13 @@ class Ultrasonic(object):
         return self.distance
      
 def main():
-    us = Ultrasonic("Main", 9, 10)
+    us = Ultrasonic()
     input("Press Enter to continue...")
     
     print("measure")
     while True:
         print(us.measure())
-        time.sleep(0.2)
+        time.sleep(0.5)
     input("Press Enter to continue...")
 
 

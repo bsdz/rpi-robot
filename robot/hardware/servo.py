@@ -1,5 +1,6 @@
 import time
 
+import robot.settings as settings
 from robot.hardware.gpio import pigpio_instance
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
@@ -50,8 +51,14 @@ class ServoPair(object):
     log = Logger("ServoPair").get_log()
 
     def __init__(self):
-        self.horizontal = Servo("Horizontal", 8, 550, 2050, 1250)
-        self.vertical = Servo("Vertical", 7, 830, 2300, 900)
+        self.horizontal = Servo("Horizontal", settings.gpio_camera_servo_horizontal, 
+                                settings.camera_servo_horizontal_minimum, 
+                                settings.camera_servo_horizontal_maximum,
+                                settings.camera_servo_horizontal_center)
+        self.vertical = Servo("Vertical", settings.gpio_camera_servo_vertical, 
+                                settings.camera_servo_vertical_minimum, 
+                                settings.camera_servo_vertical_maximum,
+                                settings.camera_servo_vertical_center)
         self.center()
 
     def set_position_coordinates(self, horiz, vert):
