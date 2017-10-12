@@ -10,23 +10,12 @@ from robot.utility.process import execute_command
 from robot.utility.logger import Logger
 log = Logger("GPIO Mock").get_log()
 
-class GpioMock(Mock):
-    @staticmethod
-    def output(pin, value):
-        log.info("output(pin %s, value %s)" % (pin, value))
-     
-
 class PIGpioMock(Mock):
     @staticmethod
     def get_servo_pulsewidth(pin):   
         log.info("get_servo_pulsewidth(pin %s)" % (pin))
         return 0
-    
-try:
-    import RPi.GPIO as gpio
-except:
-    gpio = GpioMock()
-    
+
 try:
     from pigpio import pi, INPUT, OUTPUT, EITHER_EDGE, FALLING_EDGE, RISING_EDGE, PUD_UP, PUD_DOWN, PUD_OFF, tickDiff
     pigpio_instance = pi(settings.pigpio_server)

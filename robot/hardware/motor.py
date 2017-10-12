@@ -1,47 +1,53 @@
-from robot.hardware.gpio import gpio
+import robot.settings as settings
+from robot.hardware.gpio import pigpio_instance, INPUT, EITHER_EDGE, tickDiff
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
-gpio.setwarnings(False)
-gpio.setmode(gpio.BOARD)
+PI = 3.1415926
 
 class Motor(object): # 7,11,13,15
     log = Logger("Motor").get_log()
 
-    def __init__(self, name, pin_enable1, pin_enable2, pin_input1, pin_input2):
+    def __init__(self, name, pin_enable1, pin_enable2, pin_input1, pin_input2, pin_speedsensor):
         self.name = name
+        self.pigpio = pigpio_instance
+        
         self.pin_enable1 = pin_enable1
         self.pin_enable2 = pin_enable2
         self.pin_input1 = pin_input1
         self.pin_input2 = pin_input2
-        gpio.setup(self.pin_enable1, gpio.OUT)
-        gpio.setup(self.pin_enable2, gpio.OUT)
-        gpio.setup(self.pin_input1, gpio.OUT)
-        gpio.setup(self.pin_input2, gpio.OUT)
+        self.pin_speedsensor = pin_speedsensor
+        
+        self.sensor_speed_meters_per_second = None
+        self.sensor_last_tick = None
+        self.sensor_tick_interval_microseconds = None
+        def _cbf(gpio, level, tick):
+            if self.sensor_last_tick is not None:
+                self.sensor_tick_interval_microseconds = tickDiff(self.sensor_last_tick, tick)
+                self.sensor_speed_meters_per_second = 1000 * PI * settings.wheel_diameter_millimetres / self.sensor_tick_interval_microseconds / settings.wheel_sensor_notches
+            self.sensor_last_tick = tick
+        
+        self.pigpio.set_mode(self.pin_speedsensor, INPUT)
+        self.pigpio.callback(self.pin_speedsensor, EITHER_EDGE, _cbf)
+        
         self.pwm_frequency = 40
         self.minimum_speed = 15
         self.maximum_speed = 100
         self.speed = 0
         self.direction = 0 # 1 ~ forward, 0 ~ stationary, -1 ~ backward       
-        
-    def __del__(self):      
-        gpio.cleanup(self.pin_enable1)
-        gpio.cleanup(self.pin_enable2)
-        gpio.cleanup(self.pin_input1)
-        gpio.cleanup(self.pin_input2)
 
     def enable(self, enable):
-        gpio.output(self.pin_enable1, enable)
-        gpio.output(self.pin_enable2, enable)
+        self.pigpio.write(self.pin_enable1, 1 if enable else 0)
+        self.pigpio.write(self.pin_enable2, 1 if enable else 0)
         if enable:
-            self.gpio_enable1 = gpio.PWM(self.pin_enable1, self.pwm_frequency)
-            self.gpio_enable2 = gpio.PWM(self.pin_enable2, self.pwm_frequency)
-            self.gpio_enable1.start(self.speed)
-            self.gpio_enable2.start(self.speed)
-        else:
-            self.gpio_enable1.stop()
-            self.gpio_enable2.stop()          
-    
+            self.pigpio.set_PWM_frequency(self.pin_enable1, self.pwm_frequency)
+            self.pigpio.set_PWM_frequency(self.pin_enable2, self.pwm_frequency)
+            self.pigpio.set_PWM_dutycycle(self.pin_enable1, self.speed)
+            self.pigpio.set_PWM_dutycycle(self.pin_enable2, self.speed)
+        else:      
+            self.pigpio.set_PWM_dutycycle(self.pin_enable1, 0)
+            self.pigpio.set_PWM_dutycycle(self.pin_enable2, 0)
+            
     def control(self, in1, in2, speed = 90):
         if speed > 100: speed = self.maximum_speed
         if speed < 0: speed = 0
@@ -49,10 +55,10 @@ class Motor(object): # 7,11,13,15
         self.log.debug("motor %s set speed: %s; direction: %s" % (self.name, self.speed, self.direction))
         # override actual motor speed to avoid ineffective pwm duty cycle
         actual_motor_speed = self.minimum_speed if speed != 0 and speed < self.minimum_speed else speed		
-        gpio.output(self.pin_input1, in1)
-        gpio.output(self.pin_input2, in2)
-        self.gpio_enable1.start(actual_motor_speed)
-        self.gpio_enable2.start(actual_motor_speed)                                  
+        self.pigpio.write(self.pin_input1, in1)
+        self.pigpio.write(self.pin_input2, in2)
+        self.pigpio.set_PWM_dutycycle(self.pin_enable1, actual_motor_speed)
+        self.pigpio.set_PWM_dutycycle(self.pin_enable2, actual_motor_speed)                                 
        
     def set_velocity(self, velocity=0, coast_on_brake=False):
         self.direction = (velocity > 0) - (velocity < 0)
@@ -78,14 +84,22 @@ class Motor(object): # 7,11,13,15
 class MotorPair(object):
 
     def __init__(self):
-        self.m1 = Motor("m1", 7,11,13,15)
-        self.m2 = Motor("m2", 12,16,18,22)
+        self.m1 = Motor("m1", 
+            settings.gpio_wheel_motor_left_enable_1,
+            settings.gpio_wheel_motor_left_enable_2,
+            settings.gpio_wheel_motor_left_input_1,
+            settings.gpio_wheel_motor_left_input_2,
+            settings.gpio_wheel_sensor_left)
+        
+        self.m2 = Motor("m2", 
+            settings.gpio_wheel_motor_right_enable_1,
+            settings.gpio_wheel_motor_right_enable_2,
+            settings.gpio_wheel_motor_right_input_1,
+            settings.gpio_wheel_motor_right_input_2,
+            settings.gpio_wheel_sensor_right)
+        
         self.m1.enable(True)
         self.m2.enable(True)
-        
-    def __del__(self):
-        self.m1.enable(False)
-        self.m2.enable(False)  
               
     def set_velocity(self, velocity):
         self.m1.set_velocity(velocity)

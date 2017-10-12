@@ -25,7 +25,7 @@ class SpeedSensor(object):
 def main():
 
     s = SpeedSensor("motor speed sensors", 19, 26)
-
+    input("wait")
     import time
     while True:
         time.sleep(.1)

@@ -27,6 +27,9 @@ gpio_wheel_motor_right_enable_2 = 23
 gpio_wheel_motor_right_input_1 = 24
 gpio_wheel_motor_right_input_2 = 25
 
+gpio_wheel_sensor_left = 26
+gpio_wheel_sensor_right = 19
+
 gpio_camera_servo_horizontal = 8 
 gpio_camera_servo_vertical = 7
 
@@ -44,3 +47,4 @@ camera_servo_vertical_maximum = 2300
 camera_servo_vertical_center = 900
 
 wheel_sensor_notches = 20
+wheel_diameter_millimetres = 65
