@@ -19,8 +19,8 @@ pigpio_server = "192.168.0.36" if os.name == "nt" else None
 #
 gpio_wheel_motor_left_enable_1 = 4
 gpio_wheel_motor_left_enable_2 = 17
-gpio_wheel_motor_left_input_1 = 27
-gpio_wheel_motor_left_input_2 = 22
+gpio_wheel_motor_left_input_1 = 22
+gpio_wheel_motor_left_input_2 = 27
 
 gpio_wheel_motor_right_enable_1 = 18
 gpio_wheel_motor_right_enable_2 = 23

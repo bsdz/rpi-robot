@@ -3,16 +3,18 @@ Created on 23 Sep 2017
 
 @author: pi
 '''
-from aiohttp import web, WSMsgType, ClientError
-import aiohttp_jinja2
-import jinja2
-import asyncio
-from threading import Thread
-import time, uuid
 import cv2
 import os
 import json
 import async_timeout
+import asyncio
+#from threading import Thread
+#import time, uuid
+from functools import partial
+
+from aiohttp import web, WSMsgType, ClientError
+import aiohttp_jinja2
+import jinja2
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
@@ -25,83 +27,46 @@ from robot.hardware.ultrasonic import Ultrasonic
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
-loop = asyncio.get_event_loop()
-allow_camera_capture = asyncio.Semaphore(value=0, loop=loop)
-client_log_message_queue = asyncio.Queue()
-client_image_queue = asyncio.Queue(maxsize=1)
-client_image_queue_lock = asyncio.Lock()
+class Hardware(object):
+    def __init__(self):
+        self.motor_pair = MotorPair()
+        self.servo_pair = ServoPair()
+        self.ultrasonic = Ultrasonic()
+        #self.auto_pilot = AutoPilot()
 
 class ImageCaptureData(object):
     def __init__(self):
         self.count = 0
         self.face_detected = False
 
-app = web.Application()
+class SyncObjects(object):
+    def __init__(self, loop):
+        self.loop = loop
+        self.allow_camera_capture = asyncio.Semaphore(value=0, loop=loop)
+        self.client_log_message_queue = asyncio.Queue(loop=loop)
+        self.client_image_queue = asyncio.Queue(maxsize=1, loop=loop)
+        self.client_image_queue_lock = asyncio.Lock(loop=loop)
+        self.hardware_command_queue = asyncio.Queue(loop=loop)
 
-motor_pair = MotorPair()
-servo = ServoPair()
-ultrasonic = Ultrasonic()
-#auto_pilot = AutoPilot()
+        self.image_capture_data = ImageCaptureData()
+        self.hardware = Hardware()
 
-image_capture_data = ImageCaptureData()
-
-def process_command(message):
-    log.debug('received: %s' % (message))
-    if message == "forward":
-        motor_pair.accelerate(10)
-    elif message == "backward":
-        motor_pair.accelerate(-10) 
-    elif message == "turnleft":
-        motor_pair.bear_left(-10)
-    elif message == "turnright":
-        motor_pair.bear_right(-10)
-    elif message == "brake":
-        motor_pair.set_velocity(0)
-    elif message == "panleft":
-        servo.pan_left()
-    elif message == "panright":
-        servo.pan_right()
-    elif message == "tiltup":
-        servo.tilt_up()
-    elif message == "tiltdown":
-        servo.tilt_down()
-    elif message == "center":
-        servo.center()
-    #elif message == "autopiloton":
-    #    auto_pilot.start()
-    #    auto_pilot_on = True
-    #elif message == "autopilotoff":
-    #    auto_pilot.stop()
-    #    auto_pilot_on = False
-    else:
-        log.debug('unknown message received: %s' % (message))
-
-#     message = {
-#         "status": {
-#             "m1Speed": self.motor_pair.m1.get_velocity(),
-#             "m2Speed": self.motor_pair.m2.get_velocity(),
-#             "servoHoriz": self.servo.horizontal.current,
-#             "servoVert": self.servo.vertical.current,
-#         }
-#     }
-
-async def camera_detect_worker():
+async def camera_detect_worker(sync_objects):
     face_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_frontalface_alt.xml"))
     eye_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_eye.xml"))
     smile_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_smile.xml"))
     
-    await allow_camera_capture.acquire()
+    await sync_objects.allow_camera_capture.acquire()
     log.info("Capturing camera...")
-    await client_log_message_queue.put("Server capturing camera")
+    await sync_objects.client_log_message_queue.put("Server capturing camera")
     video_capture = cv2.VideoCapture(settings.video_capture_device)
     video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, settings.video_width)
     video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.video_height)
-    global image_capture_data
     
     while True:
         success, image = video_capture.read()
         if success:
-            image_capture_data.count += 1
+            sync_objects.image_capture_data.count += 1
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
             faces = face_cascade.detectMultiScale(
@@ -113,10 +78,10 @@ async def camera_detect_worker():
             )
             
             if not list(faces):
-                image_capture_data.face_detected = False
+                sync_objects.image_capture_data.face_detected = False
                 
             for (x, y, w, h) in faces:
-                image_capture_data.face_detected = True
+                sync_objects.image_capture_data.face_detected = True
                 
                 cv2.rectangle(image, (x, y), (x+w, y+h), (0, 0, 255), 2)
                 roi_gray = gray[y:y+h, x:x+w]
@@ -146,22 +111,22 @@ async def camera_detect_worker():
                     cv2.rectangle(roi_color, (x, y), (x+w, y+h), (0, 255, 0), 1)
             
                 
-            with (await client_image_queue_lock):
+            with (await sync_objects.client_image_queue_lock):
                 image_jpeg_bytes = cv2.imencode('.jpg', image)[1].tobytes()
-                if client_image_queue.full():
-                    client_image_queue.get_nowait()
-                client_image_queue.put_nowait(image_jpeg_bytes)
+                if sync_objects.client_image_queue.full():
+                    sync_objects.client_image_queue.get_nowait()
+                sync_objects.client_image_queue.put_nowait(image_jpeg_bytes)
         
         await asyncio.sleep(settings.video_capture_sleep_seconds)
 
 @aiohttp_jinja2.template('index.html')
-async def index(request):
+async def index(sync_objects, request):
     if settings.video_source == "server_mjpeg_stream":
-        allow_camera_capture.release()
+        sync_objects.allow_camera_capture.release()
     return dict({"video_source": settings.video_source})
 
 
-async def video_feed(request, timeout=10):
+async def video_feed(sync_objects, request, timeout=10):
     """Stream a stream to aiohttp web response."""
     response = web.StreamResponse()
     response.content_type = 'multipart/x-mixed-replace;boundary=ffserver'
@@ -169,8 +134,8 @@ async def video_feed(request, timeout=10):
 
     try:
         while True:
-            with async_timeout.timeout(timeout, loop=loop):
-                data = await client_image_queue.get()
+            with async_timeout.timeout(timeout, loop=sync_objects.loop):
+                data = await sync_objects.client_image_queue.get()
 
             if not data:
                 await response.write_eof()
@@ -190,9 +155,8 @@ async def video_feed(request, timeout=10):
 
 
 
-async def system_info_websocket_heartbeat(ws):
+async def system_info_websocket_heartbeat(sync_objects, ws):
     si = SystemInfo()
-    global image_capture_data
     while True:
         message = {
             "status": {
@@ -200,28 +164,32 @@ async def system_info_websocket_heartbeat(ws):
                 "GPU Temp": si.gpu_temperature(),
                 "Core Volt": si.core_voltage(),
                 "CPU Load": si.cpu_load(),
-                "Images #": image_capture_data.count,
-                "Face detected": image_capture_data.face_detected,
-                "Forward Distance": ultrasonic.measure()
+                "Images #": sync_objects.image_capture_data.count,
+                "Face detected": sync_objects.image_capture_data.face_detected,
+                "Forward Distance": sync_objects.hardware.ultrasonic.measure(),
+                "Motor 1 Speed": sync_objects.hardware.motor_pair.m1.sensor_speed,
+                "Motor 2 Speed": sync_objects.hardware.motor_pair.m2.sensor_speed,
+                "Servo Horiz": sync_objects.hardware.servo_pair.horizontal.current,
+                "Servo Vert": sync_objects.hardware.servo_pair.vertical.current,
             }
         }
         ws.send_json(message)
         await asyncio.sleep(1)
 
-async def client_log_message_queue_worker(ws):    
+async def client_log_message_queue_worker(sync_objects, ws):    
     while True:
-        msg = await client_log_message_queue.get()
+        msg = await sync_objects.client_log_message_queue.get()
         message = {
             "log": msg
         }
         ws.send_json(message)
         
-async def websocket_handler(request):
+async def websocket_handler(sync_objects, request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    loop.create_task(system_info_websocket_heartbeat(ws))
-    loop.create_task(client_log_message_queue_worker(ws))
+    sync_objects.loop.create_task(system_info_websocket_heartbeat(sync_objects, ws))
+    sync_objects.loop.create_task(client_log_message_queue_worker(sync_objects, ws))
 
     async for msg in ws:
         if msg.type == WSMsgType.TEXT:
@@ -230,11 +198,11 @@ async def websocket_handler(request):
                 await ws.close()
             elif "clientVideoConnected" in data:
                 if data["clientVideoConnected"]:
-                    allow_camera_capture.release()
+                    sync_objects.allow_camera_capture.release()
                 else:
-                    allow_camera_capture.acquire()
+                    sync_objects.allow_camera_capture.acquire()
             elif "command" in data:
-                process_command(data["command"])
+                sync_objects.hardware_command_queue.put_nowait(data["command"])
             else:
                 log.info("Unrecognized message: " + msg.data)
         elif msg.type == WSMsgType.ERROR:
@@ -242,32 +210,67 @@ async def websocket_handler(request):
                   ws.exception())
 
     log.info('websocket connection closed')
-
     return ws
 
+async def hardware_manager(sync_objects):
+    while True:
+        message = await sync_objects.hardware_command_queue.get()
+        log.debug('received: %s' % (message))
+        if message == "forward":
+            sync_objects.hardware.motor_pair.accelerate(.1)
+        elif message == "backward":
+            sync_objects.hardware.motor_pair.accelerate(-.1) 
+        elif message == "turnleft":
+            sync_objects.hardware.motor_pair.bear_left(.1)
+        elif message == "turnright":
+            sync_objects.hardware.motor_pair.bear_right(.1)
+        elif message == "brake":
+            sync_objects.hardware.motor_pair.set_velocity(0)
+        elif message == "panleft":
+            sync_objects.hardware.servo_pair.pan_left()
+        elif message == "panright":
+            sync_objects.hardware.servo_pair.pan_right()
+        elif message == "tiltup":
+            sync_objects.hardware.servo_pair.tilt_up()
+        elif message == "tiltdown":
+            sync_objects.hardware.servo_pair.tilt_down()
+        elif message == "center":
+            sync_objects.hardware.servo_pair.center()
+        #elif message == "autopiloton":
+        #    auto_pilot.start()
+        #    auto_pilot_on = True
+        #elif message == "autopilotoff":
+        #    auto_pilot.stop()
+        #    auto_pilot_on = False
+        else:
+            log.debug('unknown message received: %s' % (message))
 
+def create_web_application(sync_objects):
+    module_dir = os.path.dirname(__file__)
+    
+    app = web.Application()
+    app.router.add_get('/', partial(index, sync_objects))
+    app.router.add_get('/video-feed', partial(video_feed, sync_objects))
+    app.router.add_get('/sys-info-ws', partial(websocket_handler, sync_objects))
+    app.router.add_static('/static/',
+                      path=os.path.join(module_dir, "static", ""),
+                      name='static')
+    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(module_dir, "templates", "")))
+    return app
 
-module_dir = os.path.dirname(__file__)
-
-app.router.add_get('/', index)
-app.router.add_get('/video-feed', video_feed)
-app.router.add_route('GET', '/sys-info-ws', websocket_handler)
-app.router.add_static('/static/',
-                  path=os.path.join(module_dir, "static", ""),
-                  name='static')
-
-aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(module_dir, "templates", "")))
-
-async def init(loop):
-    handler = app.make_handler()
-    srv = await loop.create_server(handler, settings.http_server_address, settings.http_server_port)
+async def create_http_server(loop, app):
+    srv = await loop.create_server(app.make_handler(), 
+                                   settings.http_server_address, settings.http_server_port)
     log.info('serving on ' + repr(srv.sockets[0].getsockname()))
     return srv
 
 def main():
-    
-    loop.create_task(camera_detect_worker())
-    loop.run_until_complete(init(loop))
+    loop = asyncio.get_event_loop()
+    sync_objects = SyncObjects(loop)
+    app = create_web_application(sync_objects)
+    loop.create_task(hardware_manager(sync_objects))
+    loop.create_task(camera_detect_worker(sync_objects))
+    loop.run_until_complete(create_http_server(loop, app))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
