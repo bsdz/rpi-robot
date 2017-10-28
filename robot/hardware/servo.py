@@ -1,7 +1,7 @@
 import time
 
 import robot.settings as settings
-from robot.hardware.gpio import pigpio_instance
+from robot.proxy.pigpio import pigpio_instance
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 

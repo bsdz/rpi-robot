@@ -13,7 +13,7 @@ video_capture_device = 0 if os.name == "nt" else -1
 video_source = "server_mjpeg_stream"
 video_capture_sleep_seconds = 0.2
 
-pigpio_server = "192.168.0.36" if os.name == "nt" else None
+robot_ip_address = "192.168.0.36" if os.name == "nt" else None
 
 # GPIO pin numbers
 #

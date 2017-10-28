@@ -2,7 +2,7 @@ import sys
 import asyncio
 
 import robot.settings as settings
-from robot.hardware.gpio import pigpio_instance, INPUT, EITHER_EDGE, tickDiff
+from robot.proxy.pigpio import pigpio_instance, INPUT, EITHER_EDGE, tickDiff
 from robot.utility.logger import Logger
 
 log = Logger("Motor").get_log()

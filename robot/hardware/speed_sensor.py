@@ -1,6 +1,6 @@
 import time
 
-from robot.hardware.gpio import pigpio_instance, INPUT, EITHER_EDGE
+from robot.proxy.pigpio import pigpio_instance, INPUT, EITHER_EDGE
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 

@@ -276,4 +276,5 @@ def main():
     except KeyboardInterrupt:
         pass
 
-main()
+if __name__ == "__main__":
+    main()

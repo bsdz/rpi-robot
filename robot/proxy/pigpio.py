@@ -18,7 +18,7 @@ class PIGpioMock(Mock):
 
 try:
     from pigpio import pi, INPUT, OUTPUT, EITHER_EDGE, FALLING_EDGE, RISING_EDGE, PUD_UP, PUD_DOWN, PUD_OFF, tickDiff
-    pigpio_instance = pi(settings.pigpio_server)
+    pigpio_instance = pi(settings.robot_ip_address)
 except:
     pi = PIGpioMock
     INPUT = 0

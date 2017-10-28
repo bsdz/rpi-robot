@@ -2,7 +2,7 @@ import time
 import threading
 
 import robot.settings as settings
-from robot.hardware.gpio import pigpio_instance, INPUT, OUTPUT, PUD_DOWN, FALLING_EDGE, tickDiff
+from robot.proxy.pigpio import pigpio_instance, INPUT, OUTPUT, PUD_DOWN, FALLING_EDGE, tickDiff
 from robot.utility.logger import Logger
 log = Logger("Main").get_log()
 
