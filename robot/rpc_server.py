@@ -4,7 +4,7 @@ import Pyro4.naming
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
-
+from robot.hardware.camera import Camera
 
 def main():
     Pyro4.config.SERVERTYPE = "multiplex"
@@ -18,9 +18,11 @@ def main():
         host=settings.rpc_ip_address, 
         port=settings.rpc_ip_port)
 
-    ExposedSystemInfo = Pyro4.expose(SystemInfo)
-    uri_SystemInfo = daemon.register(ExposedSystemInfo)
-    nsDaemon.nameserver.register(settings.rpc_ns_systeminfo_uri, uri_SystemInfo)
+    systeminfo_uri = daemon.register(Pyro4.expose(SystemInfo))
+    nsDaemon.nameserver.register(settings.rpc_ns_systeminfo_uri, systeminfo_uri)
+    
+    camera_uri = daemon.register(Pyro4.expose(Camera))
+    nsDaemon.nameserver.register(settings.rpc_ns_camera_uri, camera_uri)
 
     daemon.combine(nsDaemon)
 

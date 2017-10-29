@@ -14,7 +14,8 @@ else:
     systeminfo_instance = SystemInfo()
     
 if __name__ == "__main__":
-
-    print(systeminfo_instance.cpu_temperature())
-    
-    pass
+    s = systeminfo_instance
+    print(s.cpu_temperature())
+    print(s.gpu_temperature())
+    print(s.core_voltage())
+    print(s.cpu_load())

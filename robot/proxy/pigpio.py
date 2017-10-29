@@ -3,6 +3,7 @@ Created on 1 Oct 2017
 
 @author: blair
 '''
+import os
 from unittest.mock import Mock
 
 import robot.settings as settings
@@ -38,7 +39,7 @@ except:
     pigpio_instance = pi()
     
 def system_register():
-    if os.getuid() != 0:
+    if os.getuid() != 0:  # @UndefinedVariable
         log.error("Must be run as root")
         return False
         

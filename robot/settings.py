@@ -20,6 +20,7 @@ rpc_ip_address = robot_ip_address
 rpc_ip_port = 9090
 rpc_ns_ip_port = 9091
 rpc_ns_systeminfo_uri = "robot.hardware.system.SystemInfo"
+rpc_ns_camera_uri = "robot.hardware.system.Camera"
 
 # GPIO pin numbers
 #
