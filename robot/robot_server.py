@@ -17,7 +17,7 @@ import aiohttp_jinja2
 import jinja2
 
 import robot.settings as settings
-from robot.hardware.system import SystemInfo
+from robot.proxy.system import systeminfo_instance
 
 from robot.hardware.motor import MotorPair
 from robot.hardware.servo import ServoPair
@@ -156,14 +156,13 @@ async def video_feed(sync_objects, request, timeout=10):
 
 
 async def system_info_websocket_heartbeat(sync_objects, ws):
-    si = SystemInfo()
     while True:
         message = {
             "status": {
-                "CPU Temp": si.cpu_temperature(),
-                "GPU Temp": si.gpu_temperature(),
-                "Core Volt": si.core_voltage(),
-                "CPU Load": si.cpu_load(),
+                "CPU Temp": systeminfo_instance.cpu_temperature(),
+                "GPU Temp": systeminfo_instance.gpu_temperature(),
+                "Core Volt": systeminfo_instance.core_voltage(),
+                "CPU Load": systeminfo_instance.cpu_load(),
                 "Images #": sync_objects.image_capture_data.count,
                 "Face detected": sync_objects.image_capture_data.face_detected,
                 "Forward Distance": sync_objects.hardware.ultrasonic.measure(),

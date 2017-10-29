@@ -15,6 +15,12 @@ video_capture_sleep_seconds = 0.2
 
 robot_ip_address = "192.168.0.36"
 
+# remote dev
+rpc_ip_address = robot_ip_address
+rpc_ip_port = 9090
+rpc_ns_ip_port = 9091
+rpc_ns_systeminfo_uri = "robot.hardware.system.SystemInfo"
+
 # GPIO pin numbers
 #
 gpio_wheel_motor_left_enable_1 = 4
