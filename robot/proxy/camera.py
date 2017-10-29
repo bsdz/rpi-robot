@@ -8,7 +8,8 @@ import robot.settings as settings
 
 if os.name == "nt":
     import Pyro4
-    systeminfo_instance = Pyro4.Proxy(f"PYRONAME:{settings.rpc_ns_camera_uri}@{settings.rpc_ip_address}:{settings.rpc_ns_ip_port}")
+    Pyro4.config.SERIALIZER = 'pickle'
+    camera_instance = Pyro4.Proxy(f"PYRONAME:{settings.rpc_ns_camera_uri}@{settings.rpc_ip_address}:{settings.rpc_ns_ip_port}")
 else:
     from robot.hardware.camera import Camera
     camera_instance = Camera()

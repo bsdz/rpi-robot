@@ -9,6 +9,7 @@ from robot.hardware.camera import Camera
 def main():
     Pyro4.config.SERVERTYPE = "multiplex"
     Pyro4.config.POLLTIMEOUT = 3
+    Pyro4.config.SERIALIZERS_ACCEPTED.add("pickle")
 
     nsUri, nsDaemon, bcServer = Pyro4.naming.startNS(
         host=settings.rpc_ip_address, 
