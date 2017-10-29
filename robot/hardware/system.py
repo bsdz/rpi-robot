@@ -22,7 +22,7 @@ class SystemInfo(object):
             out = check_output(['/opt/vc/bin/vcgencmd','measure_temp'])
             matches = findall("temp=(.*)'C", out.decode("utf8"))
             if matches:
-                float(matches[0])
+                return float(matches[0])
         return None
 
     def core_voltage(self):
