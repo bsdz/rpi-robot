@@ -12,8 +12,9 @@ def main():
     Pyro4.config.SERVERTYPE = "multiplex"
     Pyro4.config.POLLTIMEOUT = 3
 
+    print(f"using ip address: {settings.robot_ip_address}")
     nsUri, nsDaemon, bcServer = Pyro4.naming.startNS(host=settings.robot_ip_address, port=9090, enableBroadcast=False)
-    daemon = Pyro4.Daemon(host=settings.robot_ip_address)
+    daemon = Pyro4.Daemon(host=settings.robot_ip_address, port=9091)
 
     ExposedSystemInfo = Pyro4.expose(SystemInfo)
     uri_SystemInfo = daemon.register(ExposedSystemInfo)
