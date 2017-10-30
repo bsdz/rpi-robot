@@ -18,6 +18,7 @@ import jinja2
 
 import robot.settings as settings
 from robot.proxy.system import systeminfo_instance
+from robot.proxy.camera import camera_instance
 
 from robot.hardware.motor import MotorPair
 from robot.hardware.servo import ServoPair
@@ -59,13 +60,11 @@ async def camera_detect_worker(sync_objects):
     await sync_objects.allow_camera_capture.acquire()
     log.info("Capturing camera...")
     await sync_objects.client_log_message_queue.put("Server capturing camera")
-    video_capture = cv2.VideoCapture(settings.video_capture_device)
-    video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, settings.video_width)
-    video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.video_height)
     
     while True:
-        success, image = video_capture.read()
+        success, image = camera_instance.read()
         if success:
+            #cv2.imwrite(fr'sample-{sync_objects.image_capture_data.count}.png',image)
             sync_objects.image_capture_data.count += 1
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
