@@ -4,7 +4,9 @@ Created on 3 Oct 2017
 @author: blair
 '''
 import os
-import cv2
+
+from picamera import PiCamera
+from picamera.array import PiRGBArray
 
 import robot.settings as settings
 from robot.utility.process import execute_command
@@ -15,12 +17,17 @@ V4L2CTL_PATH="/usr/bin/v4l2-ctl"
 
 class Camera(object):
     def __init__(self):
-        self.video_capture = cv2.VideoCapture(settings.video_capture_device)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, settings.video_width)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.video_height)
+        self.count = 0
+        self.camera = PiCamera()
+        self.camera.resolution = (settings.video_width, settings.video_height)
+        self.camera.framerate = 32
+        self.output = PiRGBArray(self.camera, size=(settings.video_width, settings.video_height))
 
     def read(self):
-        return self.video_capture.read()
+        self.camera.capture(self.output, 'rgb')
+        self.output.truncate(0)
+        self.count += 1
+        return True, self.output.array
 
 def system_register():
     if os.getuid() != 0:  # @UndefinedVariable
