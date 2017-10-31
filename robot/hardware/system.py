@@ -1,3 +1,9 @@
+'''system board info
+
+rpi-robot - Raspberry Pi Robot
+Copyright (C) 2017  Blair Azzopardi
+Distributed under the terms of the GNU General Public License (GPL v3)
+'''
 from subprocess import check_output
 from re import findall
 from pathlib import Path
