@@ -4,7 +4,7 @@
 
 ## Requirements ##
 
-Use the following hardware configure using this [pinout](../GPIO Pin Layout.pdf).
+Use the following hardware configure using this ![pinout](./GPIO%20Pin%20Layout.pdf).
 
 ### Hardware ###
 
