@@ -1,7 +1,8 @@
-'''
-Created on 23 Sep 2017
+'''main robot server
 
-@author: pi
+rpi-robot - Raspberry Pi Robot
+Copyright (C) 2017  Blair Azzopardi
+Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import cv2
 import os

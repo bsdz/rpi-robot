@@ -1,7 +1,8 @@
-'''
-Created on 3 Oct 2017
+'''camera
 
-@author: blair
+rpi-robot - Raspberry Pi Robot
+Copyright (C) 2017  Blair Azzopardi
+Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import os
 

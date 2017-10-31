@@ -1,5 +1,8 @@
-#!/usr/bin/python
-
+'''autopilot: due for a rewrite
+rpi-robot - Raspberry Pi Robot
+Copyright (C) 2017  Blair Azzopardi
+Distributed under the terms of the GNU General Public License (GPL v3)
+'''
 import sys
 import traceback
 import signal
