@@ -27,10 +27,11 @@ Use the following hardware configure using this ![pinout](./GPIO%20Pin%20Layout.
 * Create virtualenv with python 3.6 (uses async).
 * Install python packages in requirements.txt file.
 * In /etc/rc.local add:
-	chown root.gpio /dev/gpiomem
-	chmod g+rw /dev/gpiomem
-	pigpiod
-
+```bash
+chown root.gpio /dev/gpiomem
+chmod g+rw /dev/gpiomem
+pigpiod
+```
 ### Running ###
 
 * Activate virtualenv
