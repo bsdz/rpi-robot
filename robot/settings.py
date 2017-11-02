@@ -62,3 +62,4 @@ camera_servo_vertical_center = 900
 
 wheel_sensor_notches = 20
 wheel_diameter_millimetres = 65
+wheel_speed_regulator_interval = 0.01

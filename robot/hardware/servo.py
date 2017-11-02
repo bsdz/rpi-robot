@@ -6,17 +6,17 @@ Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 
 import time
+import logging
 
 import robot.settings as settings
 from robot.proxy.pigpio import pigpio_instance
-from robot.utility.logger import Logger
-log = Logger("Main").get_log()
 
 class Servo(object):
-    log = Logger("Servo").get_log()
-
     def __init__(self, name, gpio, minimum = 1000, maximum = 2000, center = 1500):
         self.name = name
+        
+        self.log = logging.getLogger(f'servo {name}')
+
         self.gpio = gpio
         self.min_step = minimum
         self.max_step = maximum
@@ -55,9 +55,9 @@ class Servo(object):
         self.pigpio.set_servo_pulsewidth(self.gpio, self.current) # todo: check return value
 
 class ServoPair(object):
-    log = Logger("ServoPair").get_log()
-
+ 
     def __init__(self):
+        
         self.horizontal = Servo("Horizontal", settings.gpio_camera_servo_horizontal, 
                                 settings.camera_servo_horizontal_minimum, 
                                 settings.camera_servo_horizontal_maximum,
@@ -89,11 +89,15 @@ class ServoPair(object):
         self.vertical.control(1, "+")    
         
 def main():
+    from robot.utility.logging import console_log_handler
+    logger = logging.getLogger('')
+    logger.addHandler(console_log_handler)
+    logger.setLevel(logging.DEBUG)
 
     s = ServoPair()
     sleep_seconds = 0.1
 
-    log.info("test coordinates..")
+    logger.info("test coordinates..")
     coors = [
         [550, 830], [550, 830], [2050,2300], [2050,2300], [1250,900]
     ]
@@ -101,25 +105,25 @@ def main():
         s.set_position_coordinates(h, v)
         time.sleep(0.5)
 
-    log.info("test tilt up..")
+    logger.info("test tilt up..")
     s.center()
     for i in (range(0,80)):
         time.sleep(sleep_seconds)
         s.tilt_up()
 
-    log.info("test tilt down..")
+    logger.info("test tilt down..")
     s.center()
     for i in (range(0,20)):
         time.sleep(sleep_seconds)
         s.tilt_down()
     
-    log.info("test pan left..")
+    logger.info("test pan left..")
     s.center()
     for i in (range(0,80)):
         time.sleep(sleep_seconds)
         s.pan_left()
     
-    log.info("test pan right..")
+    logger.info("test pan right..")
     s.center()
     for i in (range(0,80)):
         time.sleep(sleep_seconds)
@@ -129,4 +133,5 @@ def main():
     time.sleep(1)
 
 if __name__ == "__main__":
+    
     main()

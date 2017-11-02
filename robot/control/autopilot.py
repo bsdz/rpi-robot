@@ -6,6 +6,7 @@ Distributed under the terms of the GNU General Public License (GPL v3)
 import sys
 import traceback
 import signal
+import logging
 from time import sleep
 from queue import Queue
 from threading import Thread
@@ -14,8 +15,7 @@ from robot.hardware.motor import MotorPair
 from robot.hardware.servo import ServoPair
 from robot.hardware.ultrasonic import Ultrasonic
 
-from robot.utility.logger import Logger
-log = Logger("Main").get_log()
+log = logging.getLogger('autopilot').addHandler(logging.NullHandler())
 
 def signal_handler(signal, frame):
     log.info("SIGINT caught. Exiting gracefully")       

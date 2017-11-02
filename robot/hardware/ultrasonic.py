@@ -6,17 +6,18 @@ Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import time
 import threading
+import logging
 
 import robot.settings as settings
 from robot.proxy.pigpio import pigpio_instance, INPUT, OUTPUT, PUD_DOWN, FALLING_EDGE, tickDiff
-from robot.utility.logger import Logger
-log = Logger("Main").get_log()
 
 class Ultrasonic(object):
-    log = Logger("Ultrasonic").get_log()
 
     def __init__(self, name = "Main", gpio_trigger = settings.gpio_ultrasonic_trigger, gpio_echo = settings.gpio_ultrasonic_echo):
         self.name = name
+        
+        self.log = logging.getLogger(f'ultrasonic {name}')
+        
         self.gpio_trigger = gpio_trigger
         self.gpio_echo = gpio_echo
         
@@ -50,12 +51,16 @@ class Ultrasonic(object):
         return self.distance
      
 def main():
+    from robot.utility.logging import console_log_handler
+    logger = logging.getLogger('')
+    logger.addHandler(console_log_handler)
+    logger.setLevel(logging.DEBUG)
+    
     us = Ultrasonic()
     input("Press Enter to continue...")
     
-    print("measure")
     while True:
-        print(us.measure())
+        logger.info(f'measure: {us.measure()}')
         time.sleep(0.5)
     input("Press Enter to continue...")
 
