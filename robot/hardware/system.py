@@ -8,12 +8,11 @@ from subprocess import check_output
 from re import findall
 from pathlib import Path
 import psutil
-
-from robot.utility.logger import Logger
-log = Logger("Main").get_log()
+import logging
 
 class SystemInfo(object):
-    log = Logger("SystemInfo").get_log()
+    def __init__(self):
+        self.log = logging.getLogger("system_info")
 
     def cpu_temperature(self):
         p = Path("/sys/class/thermal/thermal_zone0/temp")
@@ -51,14 +50,16 @@ class SystemInfo(object):
         
 
 def main():
+    from robot.utility.logging import console_log_handler
+    logger = logging.getLogger('')
+    logger.addHandler(console_log_handler)
+    logger.setLevel(logging.DEBUG)
+    
     s = SystemInfo()
-    print(s.cpu_temperature())
-    print(s.gpu_temperature())
-    print(s.core_voltage())
-    print(s.cpu_load())
+    logger.info(f'cpu temp: {s.cpu_temperature()}')
+    logger.info(f'gpu temp: {s.gpu_temperature()}')
+    logger.info(f'core volts: {s.core_voltage()}')
+    logger.info(f'cpu load: {s.cpu_load()}')
 
 if __name__ == "__main__":
-    #import ptvsd
-    #ptvsd.enable_attach(secret = 'rfvgy7', address = ('0.0.0.0', 8080))
-    #ptvsd.wait_for_attach()
     main()

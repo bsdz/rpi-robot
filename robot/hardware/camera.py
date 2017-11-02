@@ -5,14 +5,15 @@ Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import os
+import logging
 
 from picamera import PiCamera
 from picamera.array import PiRGBArray
 
 import robot.settings as settings
 from robot.utility.process import execute_command
-from robot.utility.logger import Logger
-log = Logger("Camera").get_log()
+
+log = logging.getLogger('camera').addHandler(logging.NullHandler())
 
 V4L2CTL_PATH="/usr/bin/v4l2-ctl"
 

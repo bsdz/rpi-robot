@@ -9,6 +9,7 @@ import os
 import json
 import async_timeout
 import asyncio
+import logging
 #from threading import Thread
 #import time, uuid
 from functools import partial
@@ -26,8 +27,7 @@ from robot.hardware.servo import ServoPair
 from robot.hardware.ultrasonic import Ultrasonic
 #from robot.autopilot import AutoPilot
 
-from robot.utility.logger import Logger
-log = Logger("Main").get_log()
+log = logging.getLogger(f'robot_server')
 
 class Hardware(object):
     def __init__(self):
@@ -264,6 +264,12 @@ async def create_http_server(loop, app):
     return srv
 
 def main():
+    from robot.utility.logging import console_log_handler, file_log_handler
+    logger = logging.getLogger('')
+    logger.addHandler(console_log_handler)
+    logger.addHandler(file_log_handler)
+    logger.setLevel(logging.DEBUG)
+    
     loop = asyncio.get_event_loop()
     sync_objects = SyncObjects(loop)
     app = create_web_application(sync_objects)

@@ -5,9 +5,9 @@ Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import subprocess
+import logging
 
-from robot.utility.logger import Logger
-log = Logger("Process").get_log()
+log = logging.getLogger(f'process')
 
 class CommandResults(object):
     def __init__(self, out, err, retcode):

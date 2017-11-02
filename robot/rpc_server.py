@@ -5,13 +5,15 @@ Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 
-#import time
+import logging
 
 import Pyro4.naming
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
 from robot.hardware.camera import Camera
+
+log = logging.getLogger(f'rpc_server')
 
 def main():
     Pyro4.config.SERVERTYPE = "multiplex"
@@ -47,4 +49,9 @@ def main():
 
 
 if __name__ == "__main__":
+    from robot.utility.logging import console_log_handler
+    logger = logging.getLogger('')
+    logger.addHandler(console_log_handler)
+    logger.setLevel(logging.DEBUG)
+    
     main()
