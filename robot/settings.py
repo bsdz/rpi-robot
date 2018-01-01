@@ -25,9 +25,10 @@ robot_ip_address = "192.168.0.36"
 # remote dev
 rpc_ip_address = robot_ip_address
 rpc_ip_port = 9090
-rpc_ns_ip_port = 9091
-rpc_ns_systeminfo_uri = "robot.hardware.system.SystemInfo"
-rpc_ns_camera_uri = "robot.hardware.system.Camera"
+
+# gps
+gps_device_tty_path = '/dev/rfcomm0'
+gps_device_tty_baudrate = 9600
 
 # GPIO pin numbers
 #

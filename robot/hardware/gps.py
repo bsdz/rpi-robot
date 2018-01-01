@@ -11,6 +11,7 @@ import asyncio
 import serial_asyncio
 from micropyGPS import MicropyGPS
 
+import robot.settings as settings
 
 class GPSTextStreamReader(asyncio.Protocol):
     def __init__(self, gps_parser):
@@ -29,6 +30,12 @@ class GPSTextStreamReader(asyncio.Protocol):
         self.log.info('port closed')
         self.transport.loop.stop()
 
+async def create_gps_worker(loop, gps_parser):
+    srv = await serial_asyncio.create_serial_connection(loop, lambda: GPSTextStreamReader(gps_parser), 
+                        settings.gps_device_tty_path, baudrate=settings.gps_device_tty_baudrate)
+    return srv
+
+
 async def gps_echo(gps):
     while True:
         if gps.fix_type == 1:
@@ -40,9 +47,9 @@ async def gps_echo(gps):
 def main():
     loop = asyncio.get_event_loop()
     gps_parser = MicropyGPS()
-    gps_reader = serial_asyncio.create_serial_connection(loop, lambda: GPSTextStreamReader(gps_parser), '/dev/rfcomm0', baudrate=9600)
+    #gps_reader = serial_asyncio.create_serial_connection(loop, lambda: GPSTextStreamReader(gps_parser), '/dev/rfcomm0', baudrate=9600)
     loop.create_task(gps_echo(gps_parser))
-    loop.run_until_complete(gps_reader)
+    loop.run_until_complete(create_gps_worker(loop, gps_parser))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
