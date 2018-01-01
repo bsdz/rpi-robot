@@ -7,45 +7,58 @@ Distributed under the terms of the GNU General Public License (GPL v3)
 
 import logging
 
-import Pyro4.naming
+import numpy
+import asyncio
+from aiohttp import web
+from aiohttp_xmlrpc import handler
+from aiohttp_xmlrpc.common import py2xml, XML2PY_TYPES
+from lxml import etree
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
 from robot.hardware.camera import Camera
+import robot.utility.aiohttp_xmlrpc_helpers
 
-log = logging.getLogger(f'rpc_server')
+log = logging.getLogger(__name__)
+
+camera = Camera()
+system_info = SystemInfo()
+
+class XMLRPCExample(handler.XMLRPCView):
+
+    def rpc_camera_read(self):
+        return camera.read()
+
+    def rpc_system_info_cpu_temperature(self):
+        return system_info.cpu_temperature()
+
+    def rpc_system_info_gpu_temperature(self):
+        return system_info.gpu_temperature()
+
+    def rpc_system_info_core_voltage(self):
+        return system_info.core_voltage()
+
+    def rpc_system_info_cpu_load(self):
+        return system_info.cpu_load()
 
 def main():
-    Pyro4.config.SERVERTYPE = "multiplex"
-    Pyro4.config.POLLTIMEOUT = 3
-    Pyro4.config.SERIALIZERS_ACCEPTED.add("pickle")
 
-    nsUri, nsDaemon, bcServer = Pyro4.naming.startNS(
-        host=settings.rpc_ip_address, 
-        port=settings.rpc_ns_ip_port, 
-        enableBroadcast=False)
-    daemon = Pyro4.Daemon(
-        host=settings.rpc_ip_address, 
-        port=settings.rpc_ip_port)
+    app = web.Application()
+    app.router.add_route('*', '/', XMLRPCExample)
 
-    systeminfo_uri = daemon.register(Pyro4.expose(SystemInfo))
-    nsDaemon.nameserver.register(settings.rpc_ns_systeminfo_uri, systeminfo_uri)
-    
-    camera_uri = daemon.register(Pyro4.expose(Camera))
-    nsDaemon.nameserver.register(settings.rpc_ns_camera_uri, camera_uri)
+    loop = asyncio.get_event_loop()
+    srv = loop.create_server(app.make_handler(), 
+        settings.rpc_ip_address, 
+        settings.rpc_ip_port)
 
-    daemon.combine(nsDaemon)
+    log.info(f"rpc server listening on: {settings.rpc_ip_address}:{settings.rpc_ip_port}")
 
-    def loopcondition():
-        #print(time.asctime(), "Waiting for requests...")
-        return True
-    
-    print(f"nameserver listening on: {settings.rpc_ip_address}:{settings.rpc_ns_ip_port}")
-    print(f"rpc server listening on: {settings.robot_ip_address}:{settings.rpc_ip_port}")
-    daemon.requestLoop(loopcondition)
+    loop.run_until_complete(srv)
 
-    nsDaemon.close()
-    daemon.close()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
@@ -53,5 +66,13 @@ if __name__ == "__main__":
     logger = logging.getLogger('')
     logger.addHandler(console_log_handler)
     logger.setLevel(logging.DEBUG)
+
+    logging.getLogger('aiohttp_xmlrpc').setLevel(logging.INFO)
     
     main()
+
+
+
+
+
+
