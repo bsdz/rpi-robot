@@ -25,8 +25,25 @@ else:
     loop = asyncio.get_event_loop()
     gps_instance = GPS()
     loop.run_until_complete(create_gps_worker(loop, gps_instance.micropy_gps))
+
+async def gps_echo(gps_instance):
+    while True:
+        
+        fix_type, latitude, longitude, satellites_used = await asyncio.gather(
+            gps_instance.async_fix_type(),
+            gps_instance.async_latitude(),
+            gps_instance.async_longitude(),
+            gps_instance.async_satellites_used(),
+        )
+        
+        if fix_type == 1:
+            print("no fix")
+        else:
+            print(f'fix: {fix_type}D; measured: {latitude}, {longitude}; sateliites: {satellites_used}')
+        await asyncio.sleep(1)
     
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     s = gps_instance
+    loop.create_task(gps_echo(s))
     print(loop.run_until_complete(s.async_latitude()))
