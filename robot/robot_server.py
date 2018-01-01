@@ -63,7 +63,7 @@ async def camera_detect_worker(sync_objects):
     await sync_objects.client_log_message_queue.put("Server capturing camera")
     
     while True:
-        success, image = camera_instance.read()
+        success, image = await camera_instance.async_read()
         if success:
             #cv2.imwrite(fr'sample-{sync_objects.image_capture_data.count}.png',image)
             sync_objects.image_capture_data.count += 1
