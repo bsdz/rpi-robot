@@ -4,6 +4,7 @@ rpi-robot - Raspberry Pi Robot
 Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
+import asyncio
 import os
 import logging
 
@@ -18,7 +19,8 @@ log = logging.getLogger('camera').addHandler(logging.NullHandler())
 V4L2CTL_PATH="/usr/bin/v4l2-ctl"
 
 class Camera(object):
-    def __init__(self):
+    def __init__(self, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
         self.count = 0
         self.camera = PiCamera()
         self.camera.resolution = (settings.video_width, settings.video_height)
@@ -30,6 +32,9 @@ class Camera(object):
         self.output.truncate(0)
         self.count += 1
         return True, self.output.array
+
+    async def async_read(self):
+        return await self.loop.run_in_executor(None, self.read)
 
 def system_register():
     if os.getuid() != 0:  # @UndefinedVariable
