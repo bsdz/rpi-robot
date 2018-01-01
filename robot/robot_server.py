@@ -21,6 +21,7 @@ import jinja2
 import robot.settings as settings
 from robot.proxy.system import systeminfo_instance
 from robot.proxy.camera import camera_instance
+from robot.proxy.gps import gps_instance
 
 from robot.hardware.motor import MotorPair
 from robot.hardware.servo import ServoPair
@@ -157,11 +158,13 @@ async def video_feed(sync_objects, request, timeout=10):
 
 async def system_info_websocket_heartbeat(sync_objects, ws):
     while True:
-        cpu_temp, gpu_temp, core_volts, cpu_load = await asyncio.gather(
+        cpu_temp, gpu_temp, core_volts, cpu_load, lati, longi = await asyncio.gather(
             systeminfo_instance.async_cpu_temperature(),
             systeminfo_instance.async_gpu_temperature(),
             systeminfo_instance.async_core_voltage(),
             systeminfo_instance.async_cpu_load(),
+            gps_instance.async_latitude(),
+            gps_instance.async_longitude(),
         )
         
         message = {
@@ -170,6 +173,8 @@ async def system_info_websocket_heartbeat(sync_objects, ws):
                 "GPU Temp": gpu_temp,
                 "Core Volt": core_volts,
                 "CPU Load": cpu_load,
+                "Latitude": lati,
+                "Longitude": longi,
                 "Images #": sync_objects.image_capture_data.count,
                 "Face detected": sync_objects.image_capture_data.face_detected,
                 "Forward Distance": sync_objects.hardware.ultrasonic.measure(),

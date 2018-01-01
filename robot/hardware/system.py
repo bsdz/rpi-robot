@@ -4,6 +4,7 @@ rpi-robot - Raspberry Pi Robot
 Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
+import asyncio
 from subprocess import check_output
 from re import findall
 from pathlib import Path
@@ -11,7 +12,8 @@ import psutil
 import logging
 
 class SystemInfo(object):
-    def __init__(self):
+    def __init__(self, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
         self.log = logging.getLogger("system_info")
 
     def cpu_temperature(self):

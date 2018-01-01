@@ -13,6 +13,35 @@ from micropyGPS import MicropyGPS
 
 import robot.settings as settings
 
+class GPS(object):
+    def __init__(self, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
+        self.micropy_gps = MicropyGPS()
+        
+    def fix_type(self):
+        return self.micropy_gps.fix_type
+    
+    async def async_fix_type(self):
+        return await self.loop.run_in_executor(None, self.fix_type)
+
+    def latitude(self):
+        return self.micropy_gps.latitude
+    
+    async def async_latitude(self):
+        return await self.loop.run_in_executor(None, self.latitude)
+    
+    def longitude(self):
+        return self.micropy_gps.longitude
+    
+    async def async_longitude(self):
+        return await self.loop.run_in_executor(None, self.longitude)
+    
+    def satellites_used(self):
+        return self.micropy_gps.satellites_used
+    
+    async def async_satellites_used(self):
+        return await self.loop.run_in_executor(None, self.satellites_used)
+
 class GPSTextStreamReader(asyncio.Protocol):
     def __init__(self, gps_parser):
         self.log = logging.getLogger('gps_stream_reader')
@@ -46,10 +75,9 @@ async def gps_echo(gps):
 
 def main():
     loop = asyncio.get_event_loop()
-    gps_parser = MicropyGPS()
-    #gps_reader = serial_asyncio.create_serial_connection(loop, lambda: GPSTextStreamReader(gps_parser), '/dev/rfcomm0', baudrate=9600)
-    loop.create_task(gps_echo(gps_parser))
-    loop.run_until_complete(create_gps_worker(loop, gps_parser))
+    gps = GPS()
+    loop.create_task(gps_echo(gps.micropy_gps))
+    loop.run_until_complete(create_gps_worker(loop, gps.micropy_gps))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
