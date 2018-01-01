@@ -45,5 +45,8 @@ async def gps_echo(gps_instance):
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     s = gps_instance
-    loop.create_task(gps_echo(s))
-    print(loop.run_until_complete(s.async_latitude()))
+    loop.run_until_complete(gps_echo(s))
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass

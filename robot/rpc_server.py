@@ -59,7 +59,7 @@ def main():
 
     loop = asyncio.get_event_loop()
 
-    loop.create_task(create_gps_worker(loop, gps_instance))
+    loop.create_task(create_gps_worker(loop, gps_instance.micropy_gps))
     
     srv = loop.create_server(app.make_handler(), 
         settings.rpc_ip_address, 

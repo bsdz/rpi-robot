@@ -49,7 +49,7 @@ class GPSTextStreamReader(asyncio.Protocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.log.info('port opened', transport)
+        self.log.info('port opened: %s', transport)
 
     def data_received(self, data):
         for c in data:
