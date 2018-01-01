@@ -7,17 +7,14 @@ Distributed under the terms of the GNU General Public License (GPL v3)
 
 import logging
 
-import numpy
 import asyncio
 from aiohttp import web
 from aiohttp_xmlrpc import handler
-from aiohttp_xmlrpc.common import py2xml, XML2PY_TYPES
-from lxml import etree
 
 import robot.settings as settings
 from robot.hardware.system import SystemInfo
 from robot.hardware.camera import Camera
-import robot.utility.aiohttp_xmlrpc_helpers
+import robot.utility.aiohttp_xmlrpc_helpers  # @UnusedImport
 
 log = logging.getLogger(__name__)
 

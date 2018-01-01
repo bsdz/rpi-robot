@@ -9,7 +9,7 @@ import os
 import robot.settings as settings
 
 if os.name == "nt":   
-    import robot.utility.aiohttp_xmlrpc_helpers
+    import robot.utility.aiohttp_xmlrpc_helpers  # @UnusedImport
     from aiohttp_xmlrpc.client import ServerProxy
     
     client = ServerProxy(f"http://{settings.rpc_ip_address}:{settings.rpc_ip_port}/")

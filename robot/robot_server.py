@@ -27,7 +27,7 @@ from robot.hardware.servo import ServoPair
 from robot.hardware.ultrasonic import Ultrasonic
 #from robot.autopilot import AutoPilot
 
-log = logging.getLogger(f'robot_server')
+log = logging.getLogger(__name__)
 
 class Hardware(object):
     def __init__(self, loop):
@@ -157,12 +157,19 @@ async def video_feed(sync_objects, request, timeout=10):
 
 async def system_info_websocket_heartbeat(sync_objects, ws):
     while True:
+        cpu_temp, gpu_temp, core_volts, cpu_load = await asyncio.gather(
+            systeminfo_instance.async_cpu_temperature(),
+            systeminfo_instance.async_gpu_temperature(),
+            systeminfo_instance.async_core_voltage(),
+            systeminfo_instance.async_cpu_load(),
+        )
+        
         message = {
             "status": {
-                "CPU Temp": systeminfo_instance.cpu_temperature(),
-                "GPU Temp": systeminfo_instance.gpu_temperature(),
-                "Core Volt": systeminfo_instance.core_voltage(),
-                "CPU Load": systeminfo_instance.cpu_load(),
+                "CPU Temp": cpu_temp,
+                "GPU Temp": gpu_temp,
+                "Core Volt": core_volts,
+                "CPU Load": cpu_load,
                 "Images #": sync_objects.image_capture_data.count,
                 "Face detected": sync_objects.image_capture_data.face_detected,
                 "Forward Distance": sync_objects.hardware.ultrasonic.measure(),
@@ -263,12 +270,14 @@ async def create_http_server(loop, app):
     log.info('serving on ' + repr(srv.sockets[0].getsockname()))
     return srv
 
+
 def main():
     from robot.utility.logging import console_log_handler, file_log_handler
     logger = logging.getLogger('')
     logger.addHandler(console_log_handler)
     logger.addHandler(file_log_handler)
     logger.setLevel(logging.DEBUG)
+    logging.getLogger('aiohttp_xmlrpc.client').setLevel(logging.INFO)
     
     loop = asyncio.get_event_loop()
     sync_objects = SyncObjects(loop)

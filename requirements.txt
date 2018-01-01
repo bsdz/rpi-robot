@@ -8,5 +8,4 @@ filterpy==1.0.0
 pyserial-asyncio==0.4
 git+https://github.com/bsdz/micropyGPS.git@master#egg=micropyGPS
 # for remote dev
-pyro4==4.62
 aiohttp-xmlrpc==0.7.3
