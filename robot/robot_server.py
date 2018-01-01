@@ -30,8 +30,8 @@ from robot.hardware.ultrasonic import Ultrasonic
 log = logging.getLogger(f'robot_server')
 
 class Hardware(object):
-    def __init__(self):
-        self.motor_pair = MotorPair()
+    def __init__(self, loop):
+        self.motor_pair = MotorPair(loop)
         self.servo_pair = ServoPair()
         self.ultrasonic = Ultrasonic()
         #self.auto_pilot = AutoPilot()
@@ -51,7 +51,7 @@ class SyncObjects(object):
         self.hardware_command_queue = asyncio.Queue(loop=loop)
 
         self.image_capture_data = ImageCaptureData()
-        self.hardware = Hardware()
+        self.hardware = Hardware(loop=loop)
 
 async def camera_detect_worker(sync_objects):
     face_cascade = cv2.CascadeClassifier(os.path.join(settings.haar_cascade_dir, "haarcascade_frontalface_alt.xml"))

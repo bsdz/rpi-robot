@@ -20,6 +20,7 @@ Use the following hardware configure using this ![pinout](./GPIO%20Pin%20Layout.
 * Python 3.6
 * Python packages in requirements.txt.
 * pigpio - see https://github.com/joan2937/pigpio/ and http://abyz.co.uk/rpi/pigpio/download.html
+* bluez - to access Bluetooth GPS sensor. Device needs to be paired.
 
 ### Configuration ###
 
@@ -31,6 +32,8 @@ Use the following hardware configure using this ![pinout](./GPIO%20Pin%20Layout.
 chown root.gpio /dev/gpiomem
 chmod g+rw /dev/gpiomem
 pigpiod
+
+rfcomm bind /dev/rfcomm0 <bluetooth mac address> 1
 ```
 ### Running ###
 

@@ -5,8 +5,12 @@ Copyright (C) 2017  Blair Azzopardi
 Distributed under the terms of the GNU General Public License (GPL v3)
 '''
 import sys
+import os
 import asyncio
 import logging
+from tempfile import tempdir
+
+import numpy as np
 
 import robot.settings as settings
 from robot.utility.helpers import range_bound
@@ -31,13 +35,13 @@ class Motor(object): # 7,11,13,15
         self.pin_input2 = pin_input2
         self.pin_speedsensor = pin_speedsensor
         
-        self.sensor_speed = 0 # m/s
+        self._sensor_speed = 0 # m/s
         self.sensor_last_tick = None
         self.sensor_tick_interval_microseconds = None
         def _cbf(gpio, level, tick):
             if gpio == self.pin_speedsensor and self.sensor_last_tick is not None:
                 self.sensor_tick_interval_microseconds = tickDiff(self.sensor_last_tick, tick)
-                self.sensor_speed = 1000 * PI * settings.wheel_diameter_millimetres / self.sensor_tick_interval_microseconds / settings.wheel_sensor_notches
+                self._sensor_speed = 1000 * PI * settings.wheel_diameter_millimetres / self.sensor_tick_interval_microseconds / settings.wheel_sensor_notches
             self.sensor_last_tick = tick
         
         self.frequency = 40 # 40  or 500 
@@ -47,13 +51,14 @@ class Motor(object): # 7,11,13,15
         self.pigpio.set_glitch_filter(self.pin_speedsensor, 100)
         self.pigpio.set_mode(self.pin_speedsensor, INPUT)
         self.pigpio.callback(self.pin_speedsensor, FALLING_EDGE, _cbf)
+        
+        self._power = 0
     
     async def calibrate(self):
         self.control(0, 1, 1)
-        self.sensor_speed = 0
         await asyncio.sleep(3)
-        self.sensor_speed = 0
-        with open(r"C:\Users\blair\Documents\Scratch\motor.csv", "w") as fh:
+        out_path = os.path.join(tempdir(), "motor-calibration-%s.csv" % self.name)
+        with open(out_path, "w") as fh:
             for f in range(50, 1000, 100):
                 print(f'frequency: {f}')
                 self.sensor_speed = 0
@@ -81,16 +86,17 @@ class Motor(object): # 7,11,13,15
     
     @property
     def power(self):
-        dc1 = self.pigpio.get_PWM_dutycycle(self.pin_enable1)
-        dc2 = self.pigpio.get_PWM_dutycycle(self.pin_enable2)
-        return (dc1+dc2)/2
+        return self._power
+#         dc1 = self.pigpio.get_PWM_dutycycle(self.pin_enable1)
+#         dc2 = self.pigpio.get_PWM_dutycycle(self.pin_enable2)
+#         return (dc1+dc2)/2
     
     @power.setter
     def power(self, value):
         """power int: 0-255"""
-        value = range_bound(value, 0, 255)
-        self.pigpio.set_PWM_dutycycle(self.pin_enable1, value)
-        self.pigpio.set_PWM_dutycycle(self.pin_enable2, value)
+        self._power = range_bound(value, 0, 255)
+        self.pigpio.set_PWM_dutycycle(self.pin_enable1, self._power)
+        self.pigpio.set_PWM_dutycycle(self.pin_enable2, self._power)
             
     def control(self, in1, in2, enable):
         self.pigpio.write(self.pin_input1, in1)
@@ -99,20 +105,27 @@ class Motor(object): # 7,11,13,15
         self.pigpio.write(self.pin_enable2, enable)
                 
     async def speed_regulator(self):
-        tolerance = 0.1
+        tolerance = 0.01
         while True:
-            if self.sensor_last_tick is not None:
-                last_tick_diff_ms = tickDiff(self.sensor_last_tick, self.pigpio.get_current_tick())
-                if self.sensor_speed != 0 and last_tick_diff_ms > 1000000: # 1/10th second
-                    self.log.info("Resetting speed sensor")
-                    self.sensor_speed = 0
             speed_diff = abs(self.velocity) - self.sensor_speed
             if abs(speed_diff) >= tolerance:
                 power_delta = int(range_bound(speed_diff/tolerance, -5, 5))
                 self.log.info(f"Speed: requested: {abs(self.velocity):.2f}; sensor: {self.sensor_speed:.2f}; power: {self.power}; delta: {power_delta}")
                 self.power += power_delta
             await asyncio.sleep(settings.wheel_speed_regulator_interval)
-                
+    
+    @property
+    def sensor_speed(self):
+        if self.sensor_last_tick is not None:
+            last_tick_diff_ms = tickDiff(self.sensor_last_tick, self.pigpio.get_current_tick())
+            if last_tick_diff_ms > 1000000: # 1/10th second
+                return 0
+        return self._sensor_speed
+    
+    @property
+    def sensor_velocity(self):
+        self.sensor_speed * np.sign(self._velocity)
+             
     @property
     def velocity(self):
         return self._velocity
@@ -120,7 +133,8 @@ class Motor(object): # 7,11,13,15
     @velocity.setter
     def velocity(self, value):
         """value in m/s"""
-        self.log.info(f"Set veolcity: {value}")
+        # todo: handle minimum velocity
+        self.log.info(f"Set velocity: {value}")
         self._velocity = value
         if value is None: # coast on brake
             self.control(0, 0, 0)
@@ -187,45 +201,32 @@ async def motor_test_routines(loop):
     
     async def input(s):
         print(s)
-        await loop.run_in_executor(None, sys.stdin.readline)
+        return await loop.run_in_executor(None, sys.stdin.readline)
+    
+    commands = [
+        ("quit", None),
+        ("stop", lambda mp: mp.set_velocity(0)),
+        ("forward", lambda mp: mp.set_velocity(.35)),
+        ("backward", lambda mp: mp.set_velocity(-.35)),
+        ("rotate left", lambda mp: mp.rotate_left()),
+        ("rotate right", lambda mp: mp.rotate_right()),
+        ("bear left", lambda mp: mp.bear_left(.5)),
+        ("bear right", lambda mp: mp.bear_right(.5)),
+        ("bear right", lambda mp: mp.accelerate(.1)),
+    ]
     
     mp = MotorPair(loop=loop)
     mp.set_velocity(0)
-    await input("Press Enter to continue...")
+    
+    for i, c in enumerate(commands):
+        print(f"{i}) {c[0]}")
 
-    log.info("forward")
-    mp.set_velocity(.5)
-    await input("Press Enter to continue...")
- 
-#     log.info("backward")
-#     mp.set_velocity(-.5)
-#     await input("Press Enter to continue...")
-#  
-#     log.info("rotate left")
-#     mp.rotate_left()
-#     await input("Press Enter to continue...")
-#  
-#     log.info("rotate right")
-#     mp.rotate_right()
-#     await input("Press Enter to continue...")
-#      
-#     log.info("bear left")
-#     mp.set_velocity(.5)
-#     await input("Press Enter to continue...")
-#     mp.bear_left(.5)
-#     await input("Press Enter to continue...")
-#   
-#     log.info("bear left")
-#     mp.set_velocity(.5)
-#     await input("Press Enter to continue...")
-#     mp.bear_right(.5)
-#     await input("Press Enter to continue...")       
-#      
-#     log.info("accelerate test")
-#     mp.set_velocity(-.5)
-#     for i in range(0, 10):
-#         mp.accelerate(.1)
-#         await input("Press Enter to continue...")
+    while True:
+        i_str = await input("Press Enter to continue...")
+        i = int(i_str)
+        if i == 0:
+            break
+        commands[i][1](mp)
 
     mp.set_velocity(0)
 
@@ -239,14 +240,14 @@ def main():
     
     loop.run_until_complete(motor_test_routines(loop))
     
-    m1 = Motor("m1", 
-            settings.gpio_wheel_motor_left_enable_1,
-            settings.gpio_wheel_motor_left_enable_2,
-            settings.gpio_wheel_motor_left_input_1,
-            settings.gpio_wheel_motor_left_input_2,
-            settings.gpio_wheel_sensor_left,
-            loop)
-    loop.run_until_complete(m1.calibrate())
+#     m1 = Motor("m1", 
+#             settings.gpio_wheel_motor_left_enable_1,
+#             settings.gpio_wheel_motor_left_enable_2,
+#             settings.gpio_wheel_motor_left_input_1,
+#             settings.gpio_wheel_motor_left_input_2,
+#             settings.gpio_wheel_sensor_left,
+#             loop)
+#     loop.run_until_complete(m1.calibrate())
     
     
 
