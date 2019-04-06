@@ -1,11 +1,20 @@
+# all hosts
+#
 numpy==1.13.1
 aiohttp==2.2.5
 aiohttp_jinja2==0.14.0
-pigpio==1.3.8
-picamera==1.13
-opencv-python # compile
+pigpio==1.38
+#opencv-python # compile
 filterpy==1.0.0
 pyserial-asyncio==0.4
 git+https://github.com/bsdz/micropyGPS.git@master#egg=micropyGPS
-# for remote dev
+
+# for rpi host only
+#
+#picamera==1.13
+#opencv-python # compile
+
+# for remote dev hosts
+#
 aiohttp-xmlrpc==0.7.3
+opencv-python
