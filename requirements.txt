@@ -1,7 +1,7 @@
 # all hosts
 #
 numpy==1.13.1
-aiohttp==2.2.5
+aiohttp==3.7.4
 aiohttp_jinja2==0.14.0
 pigpio==1.38
 #opencv-python # compile
